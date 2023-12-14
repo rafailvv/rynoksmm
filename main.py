@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from dotenv import dotenv_values
 import pandas as pd
 
-from database import get_all_target_audience
+import database as db
 
 config = dotenv_values(".env")
 
@@ -68,6 +68,7 @@ async def start(message: Message):
     button_phone = [[InlineKeyboardButton(text="Я SMM", callback_data='menu|smm'),
                      InlineKeyboardButton(text="Я ищу SMM", callback_data='menu|looking')]]
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
+    await db.add_user(message.chat.id, message.chat.username)
     await message.answer(f"Добро пожаловать, {message.from_user.first_name}, кто ты?", reply_markup=keyboard)
 
 
@@ -80,8 +81,11 @@ async def menu_handler(callback: CallbackQuery):
         elif data[1] == "looking":
             await looking_smm_menu(callback.message)
     elif 'ta' == data[0]:
-        pass
-
+        smm = await db.get_smm_by_ta(int(data[1]))
+        i = 0
+        while i < 5 and i < len(smm):
+            await callback.message.answer(text=f"{smm[i][0], smm[i][1], smm[i][2], smm[i][3]}")
+            i += 1
 
 @dp.message(Command('i_smm'))
 async def smm_menu(message: Message):
@@ -90,7 +94,7 @@ async def smm_menu(message: Message):
 
 @dp.message(Command('i_looking_smm'))
 async def looking_smm_menu(message: Message):
-    target_audience = await get_all_target_audience()
+    target_audience = await db.get_all_target_audience()
     buttons = []
     for ta in target_audience:
         buttons.append([InlineKeyboardButton(text=ta[1], callback_data=f'ta|{ta[0]}')])
