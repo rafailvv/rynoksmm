@@ -85,22 +85,22 @@ async def got_payment(message: Message):
 
 
 @dp.message(F.text.in_({"/start", "Меню ☰"}))
-async def start(message: Message, state: FSMContext, command: CommandObject):
-    args = command.args
-    print(args)
-    if args == "i_smm":
-        await smm_menu(message, state)
-    elif args == "i_looking_smm":
-        await search_by_ta(message)
-    else:
-        button_phone = [[InlineKeyboardButton(text="Я SMM", callback_data='menu|smm'),
-                         InlineKeyboardButton(text="Я ищу SMM", callback_data='menu|looking')]]
-        keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
-        await db.add_user(message.chat.id, message.chat.username)
-        btn = [[KeyboardButton(text="Меню ☰")]]
-        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer_sticker("CAACAgIAAxkBAAIFvmWXxX8WpuUBN9IAAZCCjUeOI7IIdwAC2A8AAkjyYEsV-8TaeHRrmDQE", reply_markup=btn)
-        await message.answer(f"Добро пожаловать, {message.from_user.first_name}, кто ты?", reply_markup=keyboard)
+async def start(message: Message, state: FSMContext):
+    # args = command.args
+    # print(args)
+    # if args == "i_smm":
+    #     await smm_menu(message, state)
+    # elif args == "i_looking_smm":
+    #     await search_by_ta(message)
+    # else:
+    button_phone = [[InlineKeyboardButton(text="Я SMM", callback_data='menu|smm'),
+                     InlineKeyboardButton(text="Я ищу SMM", callback_data='menu|looking')]]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
+    await db.add_user(message.chat.id, message.chat.username)
+    btn = [[KeyboardButton(text="Меню ☰")]]
+    btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+    await message.answer_sticker("CAACAgIAAxkBAAIFvmWXxX8WpuUBN9IAAZCCjUeOI7IIdwAC2A8AAkjyYEsV-8TaeHRrmDQE", reply_markup=btn)
+    await message.answer(f"Добро пожаловать, {message.from_user.first_name}, кто ты?", reply_markup=keyboard)
 
 
 async def ta_choose(message: Message, t=None, fl=True):
