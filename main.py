@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, LabeledPrice, \
     InlineKeyboardButton, InlineKeyboardMarkup, PreCheckoutQuery, InputFile, FSInputFile, CallbackQuery, InputMediaPhoto
 from aiogram.filters import Command
+from aiogram.filters.command import CommandObject
 
 from dotenv import dotenv_values
 import pandas as pd
@@ -84,8 +85,8 @@ async def got_payment(message: Message):
 
 
 @dp.message(F.text.in_({"/start", "Меню ☰"}))
-async def start(message: Message, state: FSMContext):
-    args = message.get_args()
+async def start(message: Message, state: FSMContext, command: CommandObject):
+    args = command.args
     print(args)
     if args == "i_smm":
         await smm_menu(message, state)
