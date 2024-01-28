@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, LabeledPrice, \
     InlineKeyboardButton, InlineKeyboardMarkup, PreCheckoutQuery, InputFile, FSInputFile, CallbackQuery, InputMediaPhoto
 from aiogram.filters import Command
+from aiogram.filters.command import CommandObject
 
 from dotenv import dotenv_values
 import pandas as pd
