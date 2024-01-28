@@ -22,6 +22,7 @@ token = config['TOKEN']
 bot = Bot(token)
 dp = Dispatcher()
 
+
 async def payment(user_id, price, smm_id):
     buttons = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -75,24 +76,58 @@ async def process_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 async def got_payment(message: Message):
     payload = message.successful_payment.invoice_payload.split("|")
     if payload[0] == "contact":
-        await message.answer(f"""Оплата прошла успешно\n""")
+        btn = [[KeyboardButton(text="Меню ☰")], [KeyboardButton(text="Купленные контакты 🤝")]]
+        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+        await message.answer(f"""Оплата прошла успешно\n""", reply_markup=btn)
         profile = await db.get_profile_by_id(payload[1])
-        id, name, phone, user_id, age, town, cost, photo, tg = profile[0].split(',')
-
+        smm_id, name, phone, user_id, age, town, cost, photo, tg = profile[0].split(',')
+        await db.add_bought_contact(message.chat.id, user_id)
         await message.answer_photo(photo,
                                    caption=f"""Имя: {name[1:-1]}\nНомер телефона: {phone}\nВозраст: {age}\nГород: {town}\nТелеграм: @{tg[:-1]}""")
 
 
 @dp.message(F.text.in_({"/start", "Меню ☰"}))
 async def start(message: Message):
+    await db.add_user(message.chat.id, message.chat.username)
     button_phone = [[InlineKeyboardButton(text="Я SMM", callback_data='menu|smm'),
                      InlineKeyboardButton(text="Я ищу SMM", callback_data='menu|looking')]]
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
-    await db.add_user(message.chat.id, message.chat.username)
-    btn = [[KeyboardButton(text="Меню ☰")]]
+    btn = [[KeyboardButton(text="Меню ☰")], [KeyboardButton(text="Купленные контакты 🤝")]]
     btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
     await message.answer_sticker("CAACAgIAAxkBAAIFvmWXxX8WpuUBN9IAAZCCjUeOI7IIdwAC2A8AAkjyYEsV-8TaeHRrmDQE", reply_markup=btn)
     await message.answer(f"Добро пожаловать, {message.from_user.first_name}, кто ты?", reply_markup=keyboard)
+
+
+async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=True):
+    smm = dict_of_smm[i]
+    user_id = smm[0]
+    user_info = smm[1]
+    smm_id, name, phone, user_id, age, town, cost, photo, tg = user_info[0].split(',')
+    prev = InlineKeyboardButton(text="Предыдущий", callback_data=f"contacts_smm|prev")
+    next = InlineKeyboardButton(text="Следующий", callback_data=f"contacts_smm|next")
+    await state.update_data(dos=dict_of_smm)
+    await state.update_data(it=i)
+    if i == 0:
+        btns = [[next]]
+    elif i == len(dict_of_smm) - 1:
+        btns = [[prev]]
+    else:
+        btns = [[prev, next]]
+    btns = InlineKeyboardMarkup(inline_keyboard=btns)
+    if not fl:
+
+        await message.answer_photo(photo,
+                                   caption=f"""Имя: {name[1:-1]}\nНомер телефона: {phone}\nВозраст: {age}\nГород: {town}\nТелеграм: @{tg[:-1]}\nЦена: {cost}""", reply_markup=btns)
+    else:
+        await message.edit_media(media=InputMediaPhoto(media=photo,
+                                                       caption=f"""Имя: {name[1:-1]}\nНомер телефона: {phone}\nВозраст: {age}\nГород: {town}\nТелеграм: @{tg[:-1]}\nЦена: {cost}"""),
+                                 reply_markup=btns)
+
+
+@dp.message(F.text == "Купленные контакты 🤝")
+async def get_dos(message: Message, state: FSMContext):
+    dict_of_contacts = await db.get_bought_contacts(message.chat.id)
+    await contacts(message, state, list(dict_of_contacts.items()), 0, False)
 
 
 async def ta_choose(message: Message, t=None, fl=True):
@@ -109,7 +144,7 @@ async def ta_choose(message: Message, t=None, fl=True):
     btns.append([InlineKeyboardButton(text="Принять", callback_data="ta|done")])
     btns = InlineKeyboardMarkup(inline_keyboard=btns)
     if fl:
-        await message.answer(text="Выбери свою ЦА 👇", reply_markup=btns)
+        await message.answer(text="Выбери вашу сферу(ы) деятельности👇", reply_markup=btns)
     else:
         await message.edit_reply_markup(reply_markup=btns)
 
@@ -164,7 +199,10 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
 
         if data[1] == "done":
             await db.add_ta(message.chat.id, t)
-            await message.edit_text(text="Данные успешно, сохранены")
+            btn = [[KeyboardButton(text="Меню ☰")], [KeyboardButton(text="Купленные контакты 🤝")]]
+            btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+            await message.answer(text="Данные успешно, сохранены", reply_markup=btn)
+            await message.delete()
         else:
             if t[int(data[1])][0] == "✅":
 
@@ -203,6 +241,11 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             await list_of_smm(message, state_data["dos"], state_data["it"] + 1, state, True)
         elif data[1] == "prev":
             await list_of_smm(message, state_data["dos"], state_data["it"] - 1, state, True)
+    elif "contacts_smm" == data[0]:
+        if data[1] == "next":
+            await contacts(message, state, state_data["dos"], state_data["it"] + 1, True)
+        elif data[1] == "prev":
+            await contacts(message, state, state_data["dos"], state_data["it"] - 1, True)
 
 
 @dp.message(Command('i_smm'))

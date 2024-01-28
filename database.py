@@ -173,3 +173,27 @@ async def add_ta(id, t):
                         """)
     db.commit()
     await disconnect_db(db, cur)
+
+
+async def add_bought_contact(user_id, smm_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    INSERT INTO contacts(user_id, smm_id) 
+                    VALUES ({user_id}, {smm_id})
+                """)
+    db.commit()
+    await disconnect_db(db, cur)
+
+
+async def get_bought_contacts(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT smm_id FROM contacts WHERE user_id = {user_id}
+                """)
+    list_of_smm_id = cur.fetchall()
+    dict_of_smm = dict()
+    for smm_id in list_of_smm_id:
+        dict_of_smm[smm_id[0]] = await get_profile_by_id(smm_id[0])
+    await disconnect_db(db, cur)
+    return dict_of_smm
+
