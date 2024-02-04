@@ -35,10 +35,19 @@ async def get_profile_by_id(id):
     return profile
 
 
-async def get_all_target_audience():
+async def get_ta_by_field(f):
     db, cur = await connect_db()
     cur.execute(f"""
-                    SELECT * FROM target_audience;
+                    SELECT name FROM target_audience WHERE category='{f}'; 
+                """)
+    ta = cur.fetchall()
+    await disconnect_db(db, cur)
+    return ta
+
+async def get_all_field():
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT DISTINCT category FROM target_audience;
                 """)
     ta = cur.fetchall()
     await disconnect_db(db, cur)
