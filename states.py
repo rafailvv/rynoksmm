@@ -8,4 +8,3 @@ class SmmStatesGroup(StatesGroup):
     town = State()
     cost = State()
     photo = State()
-
