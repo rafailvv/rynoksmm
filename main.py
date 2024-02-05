@@ -405,9 +405,16 @@ async def messages(message: Message, state: FSMContext):
 
 
 async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=False):
-    if len(dict_of_smm) == 0:
+    n = len(dict_of_smm)
+    if n == 0:
         await message.answer(text="Не найдено ни одного специалиста")
     else:
+        if n == 1:
+            await message.answer(text="Найден 1 специалист")
+        elif n < 5:
+            await message.answer(text=f"Найено {n} специалиста")
+        else:
+            await message.answer(text=f"Найено {n} специалистов")
         smm = dict_of_smm[i]
         user_id = smm[0]
         user_info = smm[1]
@@ -416,7 +423,7 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
         next = InlineKeyboardButton(text="Следующий", callback_data=f"choose_smm|next")
         await state.update_data(dos=dict_of_smm)
         await state.update_data(it=i)
-        if len(dict_of_smm) == 1:
+        if n == 1:
             btns = [[buy]]
         elif i == 0:
             btns = [[buy], [next]]
