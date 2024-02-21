@@ -248,3 +248,18 @@ async def get_bought_contacts(user_id):
         dict_of_smm[smm_id[0]] = await get_profile_by_id(smm_id[0])
     await disconnect_db(db, cur)
     return dict_of_smm
+
+
+async def updt_user(user_id, fullname, phone, age, town, cost):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                UPDATE smm SET full_name='{fullname}',
+                               phone='{phone}',
+                               age={age},
+                               town='{town}',
+                               cost={cost}
+                WHERE user_id={user_id}
+                """)
+    db.commit()
+    await disconnect_db(db, cur)
+
