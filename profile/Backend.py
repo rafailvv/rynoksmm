@@ -34,18 +34,21 @@ class User(BaseModel):
 @mainpage_router.get("/profile/{user_id}")
 async def main_page(request: Request, user_id: int):
     profile = await db.get_profile_by_id(user_id)
-    profile = profile[0].split(",")
+    if profile is not None:
+        profile = profile[0].split(",")
 
-    age = int(profile[4])
-    if age % 10 == 1:
-        age = str(age) + " год"
-    elif age % 10 < 5:
-        age = str(age) + " года"
+        age = int(profile[4])
+        if age % 10 == 1:
+            age = str(age) + " год"
+        elif age % 10 < 5:
+            age = str(age) + " года"
+        else:
+            age = str(age) + " лет"
+        return templates.TemplateResponse("index.html", {"request": request, "user_id": user_id, "name": profile[1][1:-1],
+                                                         "phone": profile[2], "age": age, "cost": profile[6],
+                                                         "town": profile[5]})
     else:
-        age = str(age) + " лет"
-    return templates.TemplateResponse("index.html", {"request": request, "user_id": user_id, "name": profile[1][1:-1],
-                                                     "phone": profile[2], "age": age, "cost": profile[6],
-                                                     "town": profile[5]})
+        return templates.TemplateResponse("no_acc.html", {"request": request})
 
 
 @mainpage_router.post("/profile")
