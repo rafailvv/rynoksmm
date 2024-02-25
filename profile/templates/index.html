@@ -89,7 +89,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Ваш скрипт для обработки изменений -->
   <script>
-    var user_id = 5283298935 // window.Telegram.WebApp.initDataUnsafe.user.id;
+    var user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
 
     // Функция для заполнения полей модального окна текущими данными
     function fillModalFields() {
