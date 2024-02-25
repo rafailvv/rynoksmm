@@ -44,16 +44,20 @@ class User(BaseModel):
 #             age = str(age) + " года"
 #         else:
 #             age = str(age) + " лет"
-#         return templates.TemplateResponse("index.html", {"request": request, "user_id": user_id, "name": profile[1][1:-1],
+#         return templates.TemplateResponse("profile.html", {"request": request, "user_id": user_id, "name": profile[1][1:-1],
 #                                                          "phone": profile[2], "age": age, "cost": profile[6],
 #                                                          "town": profile[5]})
 #     else:
 #         return templates.TemplateResponse("no_acc.html", {"request": request})
 
-
 @mainpage_router.get("/")
-async def main_page_router(request: Request):
+async def main_page_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@mainpage_router.get("/profile")
+async def main_page_router(request: Request):
+    return templates.TemplateResponse("profile.html", {"request": request})
 
 
 @mainpage_router.get("/profile/info/{user_id}")
