@@ -24,7 +24,7 @@
     <div class="row">
       <div class="col-md-3"> <!-- Изменил класс на col-md-3 -->
         <!-- Изменяем размер фото -->
-        <img src="/templates/images/{{user_id}}.jpg" alt="Фото профиля" class="img-fluid rounded-circle profile-image">
+        <img src="/templates/images/{{user_id}}.jpg" alt="Фото профиля" class="img-fluid rounded-circle profile-image" id="photo">
       </div>
       <div class="col-md-9 profile-details"> <!-- Изменил класс на col-md-9 и добавил класс для увеличения шрифта -->
         <h1 id="name">{{name}}</h1>
@@ -89,7 +89,8 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Ваш скрипт для обработки изменений -->
   <script>
-    var user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
+    var user_id = 5283298935 // window.Telegram.WebApp.initDataUnsafe.user.id;
+
     // Функция для заполнения полей модального окна текущими данными
     function fillModalFields() {
       var name = document.getElementById('name').textContent;
@@ -171,6 +172,24 @@
         event.preventDefault();
       }
     });
+     function fillInitialFields() {
+      fetch(`/profile/info/${user_id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.result) {
+            document.getElementById('name').textContent = data.name;
+            document.getElementById('phone').textContent = data.phone;
+            document.getElementById('age').textContent = data.age;
+            document.getElementById('city').textContent = data.town;
+            document.getElementById('cost').textContent = data.cost;
+            document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+          } else {
+            window.location.href = 'no_acc.html';
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    fillInitialFields();
 
   </script>
 </body>

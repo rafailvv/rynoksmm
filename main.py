@@ -263,6 +263,10 @@ async def town(message: Message, state: FSMContext):
 @dp.message(st.photo)
 async def photo(message: Message, state: FSMContext):
     if message.content_type == "photo":
+        file_id = message.photo[-1].file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, f"profile/templates/images/{message.chat.id}.jpg")
         await db.add_photo(message.chat.id, message.photo[-1].file_id)
         await message.answer("Начальная цена ваших услуг в рублях за месяц 👇")
         await state.set_state(st.cost)
