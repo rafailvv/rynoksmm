@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Профиль</title>
   <!-- Подключаем Bootstrap CSS -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
   <!-- Добавляем стили для изображения -->
   <style>
     .profile-image {
@@ -42,44 +43,51 @@
 
   <!-- Модальное окно для редактирования профиля -->
   <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="editProfileModalLabel">Редактировать профиль</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editProfileModalLabel">Редактировать профиль</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+        <div class="form-group">
+          <label for="editName">Имя</label>
+          <input type="text" class="form-control" id="editName" name="name" required placeholder="Фамилия Имя">
+          <small id="editNameError" class="text-danger" style="display: none;">Пожалуйста, заполните это поле.</small>
         </div>
-        <div class="modal-body">
-          <div id="error-message" class="alert alert-danger" style="display: none;"></div>
-            <div class="form-group">
-              <label for="editPhone">Имя</label>
-              <input type="text" class="form-control" id="editName" name="name" required placeholder="Фамилия Имя">
-            </div>
-            <div class="form-group">
-              <label for="editPhone">Телефон</label>
-              <input type="tel" class="form-control" id="editPhone" name="phone" pattern="^\+7\d{10}$" required placeholder="+79991234567">
-            </div>
-            <div class="form-group">
-              <label for="editAge">Возраст</label>
-              <input type="number" class="form-control" id="editAge" required placeholder="20">
-            </div>
-            <div class="form-group">
-              <label for="editCity">Город</label>
-              <input type="text" class="form-control" id="editCity" required placeholder="Москва">
-            </div>
-            <div class="form-group">
-              <label for="editCost">Цена</label>
-              <input type="number" class="form-control" id="editCost" required placeholder="30000">
-            </div>
+        <div class="form-group">
+          <label for="editPhone">Телефон</label>
+          <input type="tel" class="form-control" id="editPhone" name="phone" pattern="^\+7\d{10}$" required placeholder="+79991234567">
+          <small id="editPhoneError" class="text-danger" style="display: none;">Пожалуйста, введите корректный номер телефона.</small>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary" id="saveChangesBtn">Сохранить изменения</button>
+        <div class="form-group">
+          <label for="editAge">Возраст</label>
+          <input type="number" class="form-control" id="editAge" required placeholder="20">
+          <small id="editAgeError" class="text-danger" style="display: none;">Пожалуйста, введите корректный возраст.</small>
         </div>
+        <div class="form-group">
+          <label for="editCity">Город</label>
+          <input type="text" class="form-control" id="editCity" required placeholder="Москва">
+          <small id="editCityError" class="text-danger" style="display: none;">Пожалуйста, заполните это поле.</small>
+        </div>
+        <div class="form-group">
+          <label for="editCost">Цена</label>
+          <input type="number" class="form-control" id="editCost" required placeholder="30000">
+          <small id="editCostErrorMaxCost" class="text-danger" style="display: none;">Максимальная цена - 10000000.</small>
+          <small id="editCostErrorMinCost" class="text-danger" style="display: none;">Минимальная цена - 15000.</small>
+          <small id="editCostErrorUncorrect" class="text-danger" style="display: none;">Некорректная цена.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="saveChangesBtn">Сохранить изменения</button>
       </div>
     </div>
   </div>
+</div>
   <!-- Подключаем jQuery (необходим для работы Bootstrap JS) -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <!-- Подключаем Popper.js (необходим для работы Bootstrap JS) -->
@@ -88,128 +96,8 @@
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Ваш скрипт для обработки изменений -->
-  <script>
-    var user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
 
-    // Функция для заполнения полей модального окна текущими данными
-    function fillModalFields() {
-      var name = document.getElementById('name').textContent;
-      var phone = document.getElementById('phone').innerText;
-      var age = document.getElementById('age').innerText.replace(" лет", "");
-      var city = document.getElementById('city').innerText;
-      var cost = document.getElementById('cost').innerText;
+  <script src="templates/script.js"></script>
 
-      document.getElementById('editName').value = name;
-      document.getElementById('editPhone').value = phone;
-      document.getElementById('editAge').value = age;
-      document.getElementById('editCity').value = city;
-      document.getElementById('editCost').value = cost;
-    }
-
-    // Сохранение изменений при нажатии кнопки "Сохранить изменения"
-    document.getElementById('saveChangesBtn').addEventListener('click', function(event) {
-      // Получаем значения полей из модального окна
-      var editedName = document.getElementById('editName').value;
-      var editedPhone = document.getElementById('editPhone').value;
-      var editedAge = document.getElementById('editAge').value;
-      var editedCity = document.getElementById('editCity').value;
-      var editedCost = document.getElementById('editCost').value;
-      var errorMessage = document.getElementById('error-message');
-
-      // Проверяем, что все поля заполнены и соответствуют паттерну
-      var age = parseInt(editedAge);
-      var ageString;
-      if (age % 10 === 1) {
-          ageString = " год";
-      } else if (age % 10 < 5) {
-          ageString = " года";
-      } else {
-          ageString = " лет";
-      }
-      if (editedPhone && editedAge && editedCity && editedCost && editedName &&
-          /^\+7\d{10}$/.test(editedPhone) && editedCost >= 15000) {
-         const data = {
-            user_id: user_id,
-            name: editedName,
-            phone: editedPhone,
-            age: editedAge,
-            cost: editedCost,
-            town: editedCity
-        };
-
-        // URL of your FastAPI server
-        const url = 'http://127.0.0.1:8000/profile/';
-
-        // Make a POST request using the fetch API
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Success:', data);
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-        });
-        // Если проверка успешна, применяем изменения к данным профиля
-        document.getElementById('name').textContent = editedName
-        document.getElementById('phone').innerText = editedPhone;
-        document.getElementById('age').innerText = editedAge + ageString;
-        document.getElementById('city').innerText = editedCity;
-        document.getElementById('cost').innerText = editedCost;
-
-        // Закрываем модальное окно
-        $('#editProfileModal').modal('hide');
-      } else {
-        // Если есть незаполненные поля или они не соответствуют паттерну, выводим сообщение об ошибке
-        errorMessage.style.display = 'block';
-        errorMessage.innerText = 'Пожалуйста, заполните все поля и убедитесь, что номер телефона имеет правильный формат и цена больше 15000.';
-        // Предотвращаем закрытие модального окна
-        event.preventDefault();
-      }
-    });
-     function fillInitialFields() {
-      fetch(`/profile/info/${user_id}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.result) {
-            document.getElementById('name').textContent = data.name;
-            document.getElementById('phone').textContent = data.phone;
-            document.getElementById('age').textContent = data.age;
-            document.getElementById('city').textContent = data.town;
-            document.getElementById('cost').textContent = data.cost;
-            document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
-          } else {
-            window.location.href = 'no_acc.html';
-          }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    // Функция для открытия диалогового окна выбора файла
-    function changePhoto() {
-      document.getElementById('fileInput').click();
-    }
-
-    // Обработка изменения выбранного файла
-    function handleFileChange(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('photo').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-
-    fillInitialFields();
-
-  </script>
 </body>
 </html>

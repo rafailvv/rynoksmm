@@ -1,6 +1,6 @@
 [Service]
 User=root
-WorkingDirectory=/home/smm_bot/profile
+WorkingDirectory=/home/rynoksmm
 ExecStart=/usr/bin/python3 Backend.py
 Restart=always
 
