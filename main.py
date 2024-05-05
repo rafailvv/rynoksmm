@@ -383,6 +383,7 @@ async def promo(message: Message, state: FSMContext):
                 [KeyboardButton(text="Купленные контакты 🤝")],
             ]
             btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+            await db.delete_user_ta(message.chat.id)
             await db.add_ta(message.chat.id, (await (state.get_data()))['ta'])
             await message.answer(text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу", reply_markup=btn)
     elif promo == "-":

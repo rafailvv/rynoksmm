@@ -127,7 +127,9 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
         }
        }
 });
- function fillInitialFields() {
+
+
+function fillInitialFields() {
   fetch(`/profile/info/${user_id}`)
     .then(response => response.json())
     .then(data => {
@@ -138,12 +140,55 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
         document.getElementById('city').textContent = data.town;
         document.getElementById('cost').textContent = data.cost;
         document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+
+        // Добавляем обработчик событий для каждой категории
+        const categories = Object.keys(data.all_ta);
+        categories.forEach(category => {
+          const categoryElement = document.createElement('div');
+          categoryElement.textContent = category;
+          categoryElement.classList.add('category');
+          categoryElement.addEventListener('click', () => toggleDirections(category));
+
+          document.getElementById('leftCheckboxes').appendChild(categoryElement);
+        });
       } else {
         window.location.href = 'no_acc.html';
       }
     })
     .catch(error => console.error('Error:', error));
 }
+
+function toggleDirections(category) {
+  const directionsElement = document.getElementById('directions');
+  if (directionsElement.dataset == null) {
+    const isDirectionsVisible = false;
+  } else {
+    const isDirectionsVisible = directionsElement.dataset.category === category;
+  }
+
+
+  if (isDirectionsVisible) {
+    // Если список направлений уже открыт для этой категории, скрываем его
+    directionsElement.innerHTML = ''; // Очищаем содержимое списка
+    directionsElement.removeAttribute('data-category'); // Убираем атрибут с категорией
+  } else {
+    // Иначе, показываем список направлений для выбранной категории
+    directionsElement.innerHTML = ''; // Очищаем содержимое списка
+
+    // Создаем список направлений
+    const directionsList = document.createElement('ul');
+    data.all_ta[category].forEach(direction => {
+      const directionItem = document.createElement('li');
+      directionItem.textContent = direction;
+      directionsList.appendChild(directionItem);
+    });
+
+    // Добавляем список направлений к элементу
+    directionsElement.appendChild(directionsList);
+    directionsElement.dataset.category = category; // Устанавливаем атрибут с категорией
+  }
+}
+
 
 // Функция для открытия диалогового окна выбора файла
 function changePhoto() {

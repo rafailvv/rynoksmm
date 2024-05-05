@@ -66,6 +66,23 @@ async def main_page_router(request: Request):
 @mainpage_router.get("/profile/info/{user_id}")
 async def main_page_info(request: Request, user_id: int):
     profile = await db.get_profile_by_id(user_id)
+    dict_of_ta = dict()
+    dict_of_all_ta = dict()
+    ta = await db.get_category_by_smm(user_id)
+    all_ta = await db.get_all_ta()
+
+    for v, k in ta:
+        if k in dict_of_ta.keys():
+            dict_of_ta[k].add(v)
+        else:
+            dict_of_ta[k] = {v}
+
+    for v, k in all_ta:
+        if k in dict_of_all_ta.keys():
+            dict_of_all_ta[k].add(v)
+        else:
+            dict_of_all_ta[k] = {v}
+
     if profile is not None:
         profile = profile[0].split(",")
 
@@ -82,7 +99,9 @@ async def main_page_info(request: Request, user_id: int):
                 "phone": profile[2],
                 "age": age,
                 "cost": profile[6],
-                "town": profile[5]}
+                "town": profile[5],
+                "all_ta": dict_of_all_ta,
+                "ta": dict_of_ta}
     else:
         return {"result": False}
 

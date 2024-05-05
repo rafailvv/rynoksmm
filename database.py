@@ -263,3 +263,33 @@ async def updt_user(user_id, fullname, phone, age, town, cost):
     db.commit()
     await disconnect_db(db, cur)
 
+
+async def get_category_by_smm(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT name, category FROM target_audience
+                    INNER JOIN target_audience_smm ON target_audience_smm.target_audience_id = target_audience.id
+                    WHERE target_audience_smm.smm_id = {user_id}
+                    """)
+    ta = cur.fetchall()
+    await disconnect_db(db, cur)
+    return ta
+
+
+async def get_all_ta():
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT name, category FROM target_audience
+                """)
+    ta = cur.fetchall()
+    await disconnect_db(db, cur)
+    return ta
+
+
+async def delete_user_ta(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                        DELETE FROM target_audience_smm WHERE smm_id = {user_id}
+                    """)
+    db.commit()
+    await disconnect_db(db, cur)
