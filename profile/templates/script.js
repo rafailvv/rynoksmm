@@ -152,6 +152,7 @@ function changePhoto() {
 
 function handleFileChange(event) {
   const file = event.target.files[0];
+  console.log("1");
   if (file) {
     // Получаем расширение файла
     const extension = file.name.split('.').pop();
@@ -165,10 +166,14 @@ function handleFileChange(event) {
 
     // Создаем объект FormData для передачи файлов
     const formData = new FormData();
-    formData.append('photo', renamedFile);
+    console.log(user_id);
+    console.log(renamedFile);
+    formData.append("user_id", user_id);
+    formData.append('file', renamedFile);
 
     // URL вашего FastAPI сервера
-    const uploadUrl = 'https://rynoksmm.ru/upload';
+//    const uploadUrl = 'https://rynoksmm.ru/upload';
+    const uploadUrl = 'http://127.0.0.1:80/upload';
     console.log(formData)
 
     // Отправляем запрос на сервер
@@ -180,7 +185,7 @@ function handleFileChange(event) {
     .then(data => {
       console.log('Success:', data);
       // Обновляем изображение на странице
-      document.getElementById('photo').src = data.photoUrl; // предполагая, что сервер возвращает URL загруженного изображения
+      document.getElementById('photo').src = `/templates/images/${user_id}.jpg`; // предполагая, что сервер возвращает URL загруженного изображения
     })
     .catch(error => console.error('Error:', error));
   }

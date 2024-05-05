@@ -95,13 +95,22 @@ async def update(user: User):
 
 
 @mainpage_router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    print(file)
-    with open(os.path.join("profile/templates/images", file.filename), "wb") as buffer:
-        buffer.write(await file.read())
-    return {"filename": file.filename}
+async def upload_file(user_id: str, file: UploadFile = File(...)):
+    try:
+        if not user_id:
+            raise ValueError("User ID is not provided.")
 
+        extension = file.filename.split('.')[-1]
+        new_file_name = f"{user_id}.{extension}"
+        file_path = os.path.join("profile/templates/images", new_file_name)
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+        return {"filename": new_file_name}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 app.include_router(mainpage_router)
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
+    # uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
+    uvicorn.run(app, host="127.0.0.1", port=80)
