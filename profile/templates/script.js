@@ -140,17 +140,50 @@ function fillInitialFields() {
         document.getElementById('city').textContent = data.town;
         document.getElementById('cost').textContent = data.cost;
         document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+        var categories = document.getElementById("categories");
+        var c = 0;
+        for (var k in data.all_ta) {
+            c++;
+            // Создаем контейнер для категории
+            var container = document.createElement('div');
+            container.classList.add('container');
 
-        // Добавляем обработчик событий для каждой категории
-        const categories = Object.keys(data.all_ta);
-        categories.forEach(category => {
-          const categoryElement = document.createElement('div');
-          categoryElement.textContent = category;
-          categoryElement.classList.add('category');
-          categoryElement.addEventListener('click', () => toggleDirections(category));
+            // Создаем заголовок и его содержимое
+            var heading = document.createElement('div');
+            heading.classList.add('heading');
+            heading.textContent = k;
+            heading.setAttribute("id", "content" + c);
+            heading.onclick = function() {
+                toggleContent(this, "content" + c);
+            };
 
-          document.getElementById('leftCheckboxes').appendChild(categoryElement);
-        });
+            // Создаем содержимое
+            var content = document.createElement('div');
+            content.classList.add('content');
+            content.id = 'content_' + k;
+
+            var i = 1;
+            for (var v in data.all_ta[k]) {
+                var label = document.createElement('label');
+                label.setAttribute('for', 'checkbox' + i);
+                label.textContent = v;
+
+                var checkbox = document.createElement('input');
+                checkbox.setAttribute('type', 'checkbox');
+                checkbox.setAttribute('id', 'checkbox' + i);
+                checkbox.setAttribute('name', 'checkbox' + i);
+
+                content.appendChild(label);
+                content.appendChild(checkbox);
+
+                i++;
+            }
+
+            // Добавляем все элементы в контейнер и контейнер в родительский элемент
+            container.appendChild(heading);
+            container.appendChild(content);
+            categories.appendChild(container);
+        }
       } else {
         window.location.href = 'no_acc.html';
       }
@@ -158,36 +191,6 @@ function fillInitialFields() {
     .catch(error => console.error('Error:', error));
 }
 
-function toggleDirections(category) {
-  const directionsElement = document.getElementById('directions');
-  if (directionsElement.dataset == null) {
-    const isDirectionsVisible = false;
-  } else {
-    const isDirectionsVisible = directionsElement.dataset.category === category;
-  }
-
-
-  if (isDirectionsVisible) {
-    // Если список направлений уже открыт для этой категории, скрываем его
-    directionsElement.innerHTML = ''; // Очищаем содержимое списка
-    directionsElement.removeAttribute('data-category'); // Убираем атрибут с категорией
-  } else {
-    // Иначе, показываем список направлений для выбранной категории
-    directionsElement.innerHTML = ''; // Очищаем содержимое списка
-
-    // Создаем список направлений
-    const directionsList = document.createElement('ul');
-    data.all_ta[category].forEach(direction => {
-      const directionItem = document.createElement('li');
-      directionItem.textContent = direction;
-      directionsList.appendChild(directionItem);
-    });
-
-    // Добавляем список направлений к элементу
-    directionsElement.appendChild(directionsList);
-    directionsElement.dataset.category = category; // Устанавливаем атрибут с категорией
-  }
-}
 
 
 // Функция для открытия диалогового окна выбора файла
@@ -236,6 +239,16 @@ function handleFileChange(event) {
   }
 }
 
+function toggleContent(element, idContent) {
+    var content = document.getElementById(idContent);
+    if (content.style.display === "none") {
+        content.style.display = "block";
+        element.textContent = element.textContent.replace(">", "∨");
+    } else {
+        content.style.display = "none";
+        element.textContent = element.textContent.replace("∨", ">");
+    }
+}
 
 
 fillInitialFields();

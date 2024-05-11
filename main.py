@@ -149,7 +149,10 @@ async def got_payment(message: Message, state: FSMContext):
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         state_data = await state.get_data()
         await db.add_ta(message.chat.id, state_data['ta'])
-        await message.answer(text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу", reply_markup=btn)
+        await message.answer(
+            text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу",
+            reply_markup=btn)
+
 
 # endregion
 
@@ -332,7 +335,8 @@ async def photo(message: Message, state: FSMContext):
         file = await bot.get_file(file_id)
         file_path = file.file_path
         await bot.download_file(file_path, f"profile/templates/images/{message.chat.id}.{file_path.split('.')[-1]}")
-        await db.add_photo(message.chat.id, message.photo[-1].file_id if message.content_type == "photo" else message.animation.file_id)
+        await db.add_photo(message.chat.id,
+                           message.photo[-1].file_id if message.content_type == "photo" else message.animation.file_id)
         await cut_photo(message.chat.id, file_path)
         btns = [[InlineKeyboardButton(text="Изменить", callback_data="photo|change"),
                  InlineKeyboardButton(text="Применить", callback_data="photo|accept")]]
@@ -385,12 +389,16 @@ async def promo(message: Message, state: FSMContext):
             btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
             await db.delete_user_ta(message.chat.id)
             await db.add_ta(message.chat.id, (await (state.get_data()))['ta'])
-            await message.answer(text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу", reply_markup=btn)
+            await message.answer(
+                text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу",
+                reply_markup=btn)
     elif promo == "-":
         await pay_for_ta(message.chat.id, (await (state.get_data()))['cnt_of_sd'] * 300)
     state_data = await state.get_data()
     await state.clear()
     await state.update_data(state_data)
+
+
 # endregion
 
 # region Поиск смм
@@ -557,7 +565,8 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             state_data['cnt_of_sd'] += 1
             # await db.add_ta(message.chat.id, t)
             btn = [
-                [InlineKeyboardButton(text=f"Опубликовать ({300 * state_data['cnt_of_sd']}₽)", callback_data=f"add_field|post|{300 * state_data['cnt_of_sd']}")],
+                [InlineKeyboardButton(text=f"Опубликовать ({300 * state_data['cnt_of_sd']}₽)",
+                                      callback_data=f"add_field|post|{300 * state_data['cnt_of_sd']}")],
                 [InlineKeyboardButton(text="Выбрать доп. сферу деятельности", callback_data="add_field|add_sp")],
             ]
             btn = InlineKeyboardMarkup(inline_keyboard=btn)
@@ -632,7 +641,6 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             await change_photo(message=message, state=state)
         elif data[1] == "accept":
             await send_cost(message=message, state=state)
-
 
 
 # endregion

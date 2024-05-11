@@ -4,49 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль</title>
-    <!-- Подключаем Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Добавляем стили для изображения -->
-    <style>
-        .profile-image {
-          width: 512px;
-        }
-
-        /* Увеличиваем размер шрифта для текстового блока */
-        .profile-details {
-          font-size: 25px;
-        }
-        /* Добавим стили для стрелки */
-.arrow {
-  margin-left: 5px; /* Добавим небольшое расстояние между текстом и стрелкой */
-  cursor: pointer; /* Добавим курсор-указатель для наведения на стрелку */
-}
-
-/* Добавим стили для выпадающего списка */
-.dropdown {
-  display: none; /* Скрываем выпадающий список изначально */
-  position: absolute; /* Позиционируем абсолютно, чтобы он был сверху от других элементов */
-  background-color: #f9f9f9; /* Зададим фоновый цвет */
-  min-width: 160px; /* Минимальная ширина списка */
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Добавим небольшую тень */
-  z-index: 1; /* Зададим z-index, чтобы список был выше других элементов */
-}
-
-/* Добавим стили для элементов списка */
-.dropdown div {
-  color: black; /* Цвет текста */
-  padding: 12px 16px; /* Отступы внутри элементов списка */
-  text-decoration: none; /* Убираем подчеркивание у текста */
-  display: block; /* Сделаем элементы блочными, чтобы они занимали всю доступную ширину */
-}
-
-/* Добавим стили для элементов списка при наведении */
-.dropdown div:hover {
-  background-color: #f1f1f1; /* Изменяем фон при наведении */
-}
-
-    </style>
+    <link href="/templates/profile_styles.css" rel="stylesheet">
 </head>
 <body>
 <div class="container mt-5">
@@ -59,15 +18,6 @@
             <input type="file" id="fileInput" style="display: none;" accept="image/*"
                    onchange="handleFileChange(event)">
         </div>
-        div class="col-md-3">
-                <div>
-                    <h4>Категории</h4>
-                    <div class="form-check" id="leftCheckboxes">
-                        <!-- Здесь будут динамически добавлены поля для галочек -->
-                    </div>
-                    <div id="rightButtons"></div>
-                </div>
-            </div>
         <div class="col-md-9 profile-details"> <!-- Изменил класс на col-md-9 и добавил класс для увеличения шрифта -->
             <h1 id="name">{{name}}</h1>
             <ul class="list-unstyled">
@@ -76,12 +26,9 @@
                 <li><strong>Город:</strong> <span id="city">{{town}}</span></li>
                 <li><strong>Цена:</strong> от <span id="cost">{{cost}}</span>₽</li>
             </ul>
+        </div>
+        <div id="categories">
 
-            <div id="directions"></div>
-
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editProfileModal"
-                    onclick="fillModalFields()">Изменить
-            </button>
         </div>
     </div>
 </div>

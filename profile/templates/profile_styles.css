@@ -1,0 +1,22 @@
+.profile-image {
+  width: 512px;
+}
+
+/* Увеличиваем размер шрифта для текстового блока */
+.profile-details {
+  font-size: 25px;
+}
+
+/* Стили для раскрывающегося блока */
+.container {
+    margin: 20px;
+}
+.heading {
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.content {
+    display: none;
+    margin-top: 10px;
+}
