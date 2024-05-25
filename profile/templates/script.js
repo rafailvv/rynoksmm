@@ -143,6 +143,7 @@ function fillInitialFields() {
         var categories = document.getElementById("categories");
         var c = 0;
         for (var k in data.all_ta) {
+            console.log(data.all_ta[k]);
             c++;
             // Создаем контейнер для категории
             var container = document.createElement('div');
@@ -151,20 +152,28 @@ function fillInitialFields() {
             // Создаем заголовок и его содержимое
             var heading = document.createElement('div');
             heading.classList.add('heading');
-            heading.textContent = k;
-            heading.setAttribute("id", "content" + c);
+            heading.textContent = '';
+            if (k in data.ta) {
+                heading.textContent = '✅ ';
+            }
+            heading.textContent += k + ' >';
+            heading.setAttribute("id", c);
             heading.onclick = function() {
-                toggleContent(this, "content" + c);
+                toggleContent(this);
             };
 
             // Создаем содержимое
             var content = document.createElement('div');
-            content.classList.add('content');
-            content.id = 'content_' + k;
+            content.classList.add('content_ta');
+
+            content.id = 'content' + c;
+            content.style = 'display: none; margin-top: 10px; margin-left: 30px; margin-right: 30px'
 
             var i = 1;
-            for (var v in data.all_ta[k]) {
+            for (var v of data.all_ta[k]) {
+                console.log(v);
                 var label = document.createElement('label');
+                label.style = 'margin-right: 10px'
                 label.setAttribute('for', 'checkbox' + i);
                 label.textContent = v;
 
@@ -172,10 +181,13 @@ function fillInitialFields() {
                 checkbox.setAttribute('type', 'checkbox');
                 checkbox.setAttribute('id', 'checkbox' + i);
                 checkbox.setAttribute('name', 'checkbox' + i);
-
                 content.appendChild(label);
+                var containsKeyword = data.ta[k].some(keyword => v.includes(keyword));
+                if (k in data.ta && containsKeyword) {
+                    checkbox.checked = true;
+                }
                 content.appendChild(checkbox);
-
+                content.appendChild(document.createElement('br'));
                 i++;
             }
 
@@ -239,8 +251,9 @@ function handleFileChange(event) {
   }
 }
 
-function toggleContent(element, idContent) {
-    var content = document.getElementById(idContent);
+function toggleContent(element) {
+    var content = document.getElementById('content' + element.id);
+    console.log(element);
     if (content.style.display === "none") {
         content.style.display = "block";
         element.textContent = element.textContent.replace(">", "∨");

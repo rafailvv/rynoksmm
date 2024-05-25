@@ -159,27 +159,34 @@ async def got_payment(message: Message, state: FSMContext):
 # region Start
 @dp.message(F.text.in_({"/start", "Меню ☰"}))
 async def start(message: Message):
-    await db.add_user(message.chat.id, message.chat.username)
-    button_phone = [
-        [
-            InlineKeyboardButton(text="Я SMM", callback_data="menu|smm"),
-            InlineKeyboardButton(text="Я ищу SMM", callback_data="menu|looking_smm"),
+    all = await db.lst_of_users()
+    all_edit = []
+    for x in all:
+        all_edit.append(x[0])
+    if message.chat.id in all_edit:
+        await message.answer(text='pass')
+    else:
+        await db.add_user(message.chat.id, message.chat.username)
+        button_phone = [
+            [
+                InlineKeyboardButton(text="Я SMM", callback_data="menu|smm"),
+                InlineKeyboardButton(text="Я ищу SMM", callback_data="menu|looking_smm"),
+            ]
         ]
-    ]
-    keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
-    btn = [
-        [KeyboardButton(text="Меню ☰")],
-        [KeyboardButton(text="Купленные контакты 🤝")],
-    ]
-    btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-    await message.answer_sticker(
-        "CAACAgIAAxkBAAIFvmWXxX8WpuUBN9IAAZCCjUeOI7IIdwAC2A8AAkjyYEsV-8TaeHRrmDQE",
-        reply_markup=btn,
-    )
-    await message.answer(
-        f"Добро пожаловать, {message.from_user.first_name}, кто ты? 🤔",
-        reply_markup=keyboard,
-    )
+        keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
+        btn = [
+            [KeyboardButton(text="Меню ☰")],
+            [KeyboardButton(text="Купленные контакты 🤝")],
+        ]
+        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+        await message.answer_sticker(
+            "CAACAgIAAxkBAAIFvmWXxX8WpuUBN9IAAZCCjUeOI7IIdwAC2A8AAkjyYEsV-8TaeHRrmDQE",
+            reply_markup=btn,
+        )
+        await message.answer(
+            f"Добро пожаловать, {message.from_user.first_name}, кто ты? 🤔",
+            reply_markup=keyboard,
+        )
 
 
 # endregion

@@ -293,3 +293,13 @@ async def delete_user_ta(user_id):
                     """)
     db.commit()
     await disconnect_db(db, cur)
+
+
+async def lst_of_users():
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT user_id FROM smm
+                        """)
+    ans = cur.fetchall()
+    await disconnect_db(db, cur)
+    return ans
