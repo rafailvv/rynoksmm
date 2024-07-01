@@ -3,13 +3,14 @@ import os
 import ssl
 
 import uvicorn
-from fastapi import FastAPI, Request, APIRouter, UploadFile, File
+from fastapi import FastAPI, Request, APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 import database as db
+from typing import List
 
 # endregion
 
@@ -128,6 +129,21 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
 
     except Exception as e:
         return {"error": str(e)}
+
+
+class Categories(BaseModel):
+    user_id: int
+    categories: List[str]
+
+
+@mainpage_router.post("/save_categories/")
+async def save_categories(categories: Categories):
+    # try:
+    await db.edit_categories(categories)
+    return {"status": "success"}
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
+
 
 app.include_router(mainpage_router)
 if __name__ == "__main__":

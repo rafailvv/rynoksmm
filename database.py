@@ -204,7 +204,6 @@ async def get_ta_id(ta):
     )
     ta_id = cur.fetchone()
     ta_id = int(ta_id[0])
-    db.commit()
     await disconnect_db(db, cur)
     return ta_id
 
@@ -303,3 +302,33 @@ async def lst_of_users():
     ans = cur.fetchall()
     await disconnect_db(db, cur)
     return ans
+
+
+async def edit_categories(categories):
+    print(categories.categories)
+    db, cur = await connect_db()
+    cur.execute(f"DELETE FROM target_audience_smm WHERE smm_id = {categories.user_id}")
+    for category in categories.categories:
+        cur.execute(f"INSERT INTO target_audience_smm (smm_id, target_audience_id) VALUES ({categories.user_id}, {await get_ta_id(category)})")
+    db.commit()
+    await disconnect_db(db, cur)
+
+
+async def get_phone_by_user_id(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT phone FROM smm WHERE user_id = {user_id}
+                        """)
+    phone = cur.fetchone()
+    await disconnect_db(db, cur)
+    return phone
+
+
+async def get_tg_by_user_id(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT username FROM users WHERE id = {user_id}
+                        """)
+    username = cur.fetchone()
+    await disconnect_db(db, cur)
+    return username

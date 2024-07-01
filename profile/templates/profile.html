@@ -26,11 +26,19 @@
                 <li><strong>Город:</strong> <span id="city">{{town}}</span></li>
                 <li><strong>Цена:</strong> от <span id="cost">{{cost}}</span>₽</li>
             </ul>
+            <div id="directions"></div>
+
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editProfileModal"
+                    onclick="fillModalFields()">Изменить
+            </button>
         </div>
+
+    </div>
+    <div><h3>Категории</h3></div>
         <div id="categories">
 
         </div>
-    </div>
+    <button type="button" class="btn btn-success" id="saveCategoriesBtn">Сохранить категории</button>
 </div>
 
 <!-- Модальное окно для редактирования профиля -->
