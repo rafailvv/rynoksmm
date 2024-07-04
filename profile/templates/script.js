@@ -175,7 +175,6 @@ function fillInitialFields() {
                 var label = document.createElement('label');
                 label.style = 'margin-right: 10px'
                 label.setAttribute('for', 'checkbox' + i);
-                label.setAttribute('name', 'checkbox' + i);
                 label.textContent = v;
 
                 var checkbox = document.createElement('input');
@@ -183,7 +182,8 @@ function fillInitialFields() {
                 checkbox.setAttribute('id', 'checkbox' + i);
                 checkbox.setAttribute('name', 'checkbox' + i);
                 content.appendChild(label);
-                if (k in data.ta && data.ta[k].some(keyword => v.includes(keyword))) {
+                var containsKeyword = data.ta[k].some(keyword => v.includes(keyword));
+                if (k in data.ta && containsKeyword) {
                     checkbox.checked = true;
                 }
                 content.appendChild(checkbox);
@@ -262,39 +262,6 @@ function toggleContent(element) {
         element.textContent = element.textContent.replace("∨", ">");
     }
 }
-
-
-document.getElementById('saveCategoriesBtn').addEventListener('click', function() {
-  const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-  const selectedIds = Array.from(checkboxes).map(checkbox => checkbox.name);
-    console.log(selectedIds);
-   var selectedCategories = []
-  for (var chid of selectedIds) {
-  console.log(`label[name="${chid}"]`)
-  console.log(document.querySelector(`label[name="${chid}"]`));
-     selectedCategories.push(document.querySelector(`label[name="${chid}"]`).textContent);
-  }
-    console.log(selectedCategories);
-  const data = {
-    user_id: user_id,
-    categories: selectedCategories
-  };
-
-  fetch('/save_categories/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Success:', data);
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
-});
 
 
 fillInitialFields();

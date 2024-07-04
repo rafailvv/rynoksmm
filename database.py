@@ -332,3 +332,21 @@ async def get_tg_by_user_id(user_id):
     username = cur.fetchone()
     await disconnect_db(db, cur)
     return username
+
+
+async def is_used_free_sub(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT free_sub FROM smm WHERE user_id={user_id}
+                """)
+    used = bool(cur.fetchone()[0])
+    await disconnect_db(db, cur)
+    return used
+
+
+async def use_free_sub(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    UPDATE smm SET free_sub = {1} WHERE user_id = {user_id}
+                """)
+    await disconnect_db(db, cur)

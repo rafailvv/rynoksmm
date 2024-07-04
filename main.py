@@ -389,7 +389,15 @@ async def cost(message: Message, state: FSMContext):
 @dp.message(st.promo)
 async def promo(message: Message, state: FSMContext):
     promo = message.text
-    if promo == "free":
+    if promo == "-":
+        if await db.is_used_free_sub(message.chat.id):
+            btns = [[InlineKeyboardButton(text="Активировать", callback_data=f"free_sub|use|{message.chat.id}")],
+                    [InlineKeyboardButton(text="Использовать потом", callback_data=f"free_sub|then")]]
+            btns = InlineKeyboardMarkup(inline_keyboard=btns)
+            await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
+        else:
+
+    elif promo == "free":
         if (await (state.get_data()))['cnt_of_sd'] * 300 - 900 > 0:
             await pay_for_ta(message.chat.id, ((await (state.get_data()))['cnt_of_sd'] * 300 - 900))
         else:
@@ -403,8 +411,6 @@ async def promo(message: Message, state: FSMContext):
             await message.answer(
                 text="Данные успешно сохранены\nПосмотреть и отредактировать свой профиль вы можете по кнопке снизу",
                 reply_markup=btn)
-    elif promo == "-":
-        await pay_for_ta(message.chat.id, (await (state.get_data()))['cnt_of_sd'] * 300)
     state_data = await state.get_data()
     await state.clear()
     await state.update_data(state_data)
@@ -576,8 +582,8 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             state_data['cnt_of_sd'] += 1
             # await db.add_ta(message.chat.id, t)
             btn = [
-                [InlineKeyboardButton(text=f"Опубликовать ({300 * state_data['cnt_of_sd']}₽)",
-                                      callback_data=f"add_field|post|{300 * state_data['cnt_of_sd']}")],
+                [InlineKeyboardButton(text=f"Опубликовать",
+                                      callback_data=f"add_field|post")],
                 [InlineKeyboardButton(text="Выбрать доп. сферу деятельности", callback_data="add_field|add_sp")],
             ]
             btn = InlineKeyboardMarkup(inline_keyboard=btn)
@@ -664,7 +670,17 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             await change_photo(message=message, state=state)
         elif data[1] == "accept":
             await send_cost(message=message, state=state)
+    elif "free_sub" in data[0]:
+        if data[1] == "use":
+            await db.use_free_sub(int(data[2]))
+            year = datetime.year
+            month = datetime.month
+            day = datetime.day
+            hour = datetime.hour
+            minute = datetime.minute
+            second = datetime.second
 
+            #scheduler.add_job(sub_end, "data", datetime(), args=())
 
 # endregion
 
