@@ -1,6 +1,4 @@
-//var user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
-var user_id = 5283298935;
-document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+var user_id;
 // Функция для заполнения полей модального окна текущими данными
 function fillModalFields() {
   var name = document.getElementById('name').textContent;
@@ -11,12 +9,14 @@ function fillModalFields() {
   age = age.replace(" год", "");
   var city = document.getElementById('city').innerText;
   var cost = document.getElementById('cost').innerText;
+  var description = document.getElementById('description').innerText;
 
   document.getElementById('editName').value = name;
   document.getElementById('editPhone').value = phone;
   document.getElementById('editAge').value = age;
   document.getElementById('editCity').value = city;
   document.getElementById('editCost').value = cost;
+  document.getElementById('editDescription').value = description;
 }
 
 // Сохранение изменений при нажатии кнопки "Сохранить изменения"
@@ -34,6 +34,7 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
   var editedAge = document.getElementById('editAge').value;
   var editedCity = document.getElementById('editCity').value;
   var editedCost = document.getElementById('editCost').value;
+  var editedDescription = document.getElementById('editDescription').value;
   var errorMessage = document.getElementById('error-message');
 // Получение данных с веб-страницы и проверка наличия города в списке
 
@@ -66,6 +67,10 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
         document.getElementById('editCostErrorMaxCost').style.display = 'block';
         document.getElementById('editCost').classList.add('is-invalid');
       }
+      if (!editedDescription || editedDescription.length > 500) { // Проверка на длину описания
+        document.getElementById('editDescriptionError').style.display = 'block';
+        document.getElementById('editDescription').classList.add('is-invalid');
+      }
 
       if (!editedName || !editedPhone || !/^\+7\d{10}$/.test(editedPhone) || !editedAge || !editedCity || !editedCost || editedCost < 15000 || editedCost > 10000000 || editedAge <= 0 || editedAge >= 120) {
         event.preventDefault();
@@ -88,11 +93,12 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
               phone: editedPhone,
               age: editedAge,
               cost: editedCost,
-              town: editedCity
+              town: editedCity,
+              description: editedDescription
           };
 
           // URL of your FastAPI server
-          const url = 'https://rynoksmm.ru/profile/';
+          const url = '/profile/';
 
           // Make a POST request using the fetch API
           fetch(url, {
@@ -115,7 +121,7 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
           document.getElementById('age').innerText = editedAge + ageString;
           document.getElementById('city').innerText = editedCity;
           document.getElementById('cost').innerText = editedCost;
-
+          document.getElementById('description').innerText = editedDescription;
          // Закрываем модальное окно
           $('#editProfileModal').modal('hide');
         } else {
@@ -130,7 +136,7 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
 
 
 function fillInitialFields() {
-  fetch(`/profile/info/${user_id}`)
+  return fetch(`/profile/info/${user_id}`)
     .then(response => response.json())
     .then(data => {
       if (data.result) {
@@ -140,10 +146,13 @@ function fillInitialFields() {
         document.getElementById('city').textContent = data.town;
         document.getElementById('cost').textContent = data.cost;
         document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+        document.getElementById('description').textContent = data.description;
+        document.getElementById('date_sub').textContent = data.date_sub;
         var categories = document.getElementById("categories");
         var c = 0;
+        var i = 1;
         for (var k in data.all_ta) {
-            console.log(data.all_ta[k]);
+
             c++;
             // Создаем контейнер для категории
             var container = document.createElement('div');
@@ -169,21 +178,23 @@ function fillInitialFields() {
             content.id = 'content' + c;
             content.style = 'display: none; margin-top: 10px; margin-left: 30px; margin-right: 30px'
 
-            var i = 1;
+
             for (var v of data.all_ta[k]) {
-                console.log(v);
+
                 var label = document.createElement('label');
                 label.style = 'margin-right: 10px'
                 label.setAttribute('for', 'checkbox' + i);
+                label.setAttribute('name', 'checkbox' + i);
                 label.textContent = v;
 
                 var checkbox = document.createElement('input');
                 checkbox.setAttribute('type', 'checkbox');
                 checkbox.setAttribute('id', 'checkbox' + i);
                 checkbox.setAttribute('name', 'checkbox' + i);
+
                 content.appendChild(label);
-                var containsKeyword = data.ta[k].some(keyword => v.includes(keyword));
-                if (k in data.ta && containsKeyword) {
+
+                if (k in data.ta && data.ta[k].some(keyword => v.includes(keyword))) {
                     checkbox.checked = true;
                 }
                 content.appendChild(checkbox);
@@ -197,10 +208,12 @@ function fillInitialFields() {
             categories.appendChild(container);
         }
       } else {
-        window.location.href = 'no_acc.html';
+        window.location.href = 'no_acc';
       }
     })
     .catch(error => console.error('Error:', error));
+
+
 }
 
 
@@ -212,29 +225,29 @@ function changePhoto() {
 
 function handleFileChange(event) {
   const file = event.target.files[0];
-  console.log("1");
+
   if (file) {
     // Получаем расширение файла
     const extension = file.name.split('.').pop();
 
     // Создаем новое имя файла с user_id и оригинальным расширением
     const newFileName = `${user_id}.${extension}`;
-    console.log(newFileName)
+
 
     // Создаем новый объект File с переименованным именем
     const renamedFile = new File([file], newFileName, { type: file.type });
 
     // Создаем объект FormData для передачи файлов
     const formData = new FormData();
-    console.log(user_id);
-    console.log(renamedFile);
+
+
     formData.append("user_id", user_id);
     formData.append('file', renamedFile);
 
     // URL вашего FastAPI сервера
-//    const uploadUrl = 'https://rynoksmm.ru/upload';
-    const uploadUrl = 'http://127.0.0.1:80/upload';
-    console.log(formData)
+        const uploadUrl = '/upload';
+//    const uploadUrl = 'http://127.0.0.1:80/upload';
+
 
     // Отправляем запрос на сервер
     fetch(uploadUrl, {
@@ -253,7 +266,7 @@ function handleFileChange(event) {
 
 function toggleContent(element) {
     var content = document.getElementById('content' + element.id);
-    console.log(element);
+
     if (content.style.display === "none") {
         content.style.display = "block";
         element.textContent = element.textContent.replace(">", "∨");
@@ -262,6 +275,51 @@ function toggleContent(element) {
         element.textContent = element.textContent.replace("∨", ">");
     }
 }
+document.getElementById('saveCategoriesBtn').addEventListener('click', function() {
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+  const selectedIds = Array.from(checkboxes).map(checkbox => checkbox.name);
+    console.log(selectedIds);
+   var selectedCategories = []
+  for (var chid of selectedIds) {
+//  console.log(`label[name="${chid}"]`)
+//  console.log(document.querySelector(`label[name="${chid}"]`));
+     selectedCategories.push(document.querySelector(`label[name="${chid}"]`).textContent);
+  }
+   console.log(selectedCategories);
+  const data = {
+    user_id: user_id,
+    categories: selectedCategories
+  };
+
+  fetch('/save_categories/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Success:', data);
+    location.reload();
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  });
+});
+
+window.addEventListener("DOMContentLoaded", function (){
+    //var user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
+    const loadingOverlay = document.getElementById("loading");
+    user_id = 5283298935;
+    console.log(user_id);
+    document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+    fillInitialFields().then(() => {
+        loadingOverlay.style.display = "none";
+    }).catch(error => {
+        console.error('Error:', error);
+        loadingOverlay.style.display = "none";
+    });
+})
 
 
-fillInitialFields();

@@ -32,9 +32,10 @@ from states import SmmStatesGroup as st
 
 from PIL import Image, ImageDraw
 
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 config = dotenv_values(".env")
 
@@ -43,6 +44,7 @@ token = config["TOKEN"]
 bot = Bot(token)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+
 
 # endregion
 
@@ -138,12 +140,12 @@ async def got_payment(message: Message, state: FSMContext):
         ]
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await message.answer(f"""Оплата прошла успешно\n""", reply_markup=btn)
-        profile = await db.get_profile_by_id(payload[1])
+        profile = await db.get_profile_by_id_str(payload[1])
         smm_id, name, phone, user_id, age, town, cost, photo, tg = profile[0].split(",")
         await db.add_bought_contact(message.chat.id, user_id)
         await message.answer_photo(
             photo,
-            caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {town}\n💬 Телеграм: @{tg[:-1]}""",
+            caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
         )
     elif payload[0] == "ta":
         btn = [
@@ -202,7 +204,7 @@ async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=Tru
     smm = dict_of_smm[i]
     user_id = smm[0]
     user_info = smm[1]
-    smm_id, name, phone, user_id, age, town, cost, photo, tg = user_info[0].split(",")
+    smm_id, name, phone, user_id, age, city, cost, photo, tg, description = user_info[0].split(",")
     prev = InlineKeyboardButton(
         text="⬅️ Предыдущий", callback_data=f"contacts_smm|prev"
     )
@@ -222,14 +224,14 @@ async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=Tru
 
         await message.answer_photo(
             photo,
-            caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂Возраст: {age}\n🏙 Город: {town}\n💬 Телеграм: @{tg[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
+            caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
             reply_markup=btns,
         )
     else:
         await message.edit_media(
             media=InputMediaPhoto(
                 media=photo,
-                caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂Возраст: {age}\n🏙 Город: {town}\n💬 Телеграм: @{tg[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
+                caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
             ),
             reply_markup=btns,
         )
@@ -268,10 +270,14 @@ async def ta_choose(message: Message, t=None, fl=True):
 
 @dp.message(Command("i_smm"))
 async def smm_menu(message: Message, state: FSMContext):
-    await db.add_smm(message.chat.id)
-    await message.answer(f"Заполни анкету")
-    await message.answer("Введите Имя и Фамилию 👇")
-    await state.set_state(st.fullname)
+    if await db.is_smm(message.chat.id):
+        await message.answer(f"У вас уже есть аккаунт SMM. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'.")
+    else:
+        await db.add_smm(message.chat.id, datetime.utcnow())
+        await message.answer(f"Заполните анкету.")
+        await message.answer("Введите ваше имя и фамилию 👇")
+
+        await state.set_state(st.fullname)
 
 
 @dp.message(st.fullname)
@@ -315,21 +321,29 @@ async def age(message: Message, state: FSMContext):
 
 
 @dp.message(st.town)
-async def town(message: Message, state: FSMContext):
+async def town(message: Message, state: FSMContext, fl=False, town=""):
     url = "https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%B2_%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D0%B8"
     df = pd.read_html(url)[0]
     cities = df["Город"].to_list()
-    if message.text.capitalize() in cities:
-        await db.add_town(message.chat.id, message.text.capitalize())
+    if fl or message.text.capitalize() in cities:
+        if town == "":
+            await db.add_town(message.chat.id, message.text.capitalize())
+        else:
+            await db.add_town(town, message.text.capitalize())
         await message.answer("Пришлите фотографию вашего профиля 📸")
         await state.set_state(st.photo)
     else:
-        await message.answer("❌ Неверный город, попробуйте еще")
+        btns = [[InlineKeyboardButton(text="Да", callback_data=f"town|1|{message.text.capitalize()}"), InlineKeyboardButton(text="Нет", callback_data="town|0")]]
+        btns = InlineKeyboardMarkup(inline_keyboard=btns)
+        await message.answer("Ваш город не найден в базе данных, вы уверены что хотите продолжить?", reply_markup=btns)
 
 
 async def cut_photo(user_id, file_path):
     photo = Image.open(f"profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
-    os.remove(f"profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
+    try:
+        os.remove(f"profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
+    except:
+        pass
     width, height = photo.size
     pix = photo.load()
     if height > width:
@@ -363,7 +377,18 @@ async def change_photo(message: Message, state: FSMContext):
     await state.set_state(st.photo)
 
 
+async def send_description(message: Message, state: FSMContext):
+    await message.answer("Опишите ваши услуги в текстовом сообщении")
+    await state.set_state(st.description)
+
+
+@dp.message(st.description)
 async def send_cost(message: Message, state: FSMContext):
+    if len(message.text) > 500:
+        await message.answer("Слишком длинное описание, попробуйте сократить (до 500 символов)")
+        return
+
+    await db.add_description(message.chat.id, message.text)
     await message.answer("Начальная цена ваших услуг в рублях за месяц 👇")
     await state.set_state(st.cost)
 
@@ -396,6 +421,7 @@ async def promo(message: Message, state: FSMContext):
             btns = InlineKeyboardMarkup(inline_keyboard=btns)
             await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
         else:
+            pass
 
     elif promo == "free":
         if (await (state.get_data()))['cnt_of_sd'] * 300 - 900 > 0:
@@ -503,14 +529,14 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
         if not fl:
             await message.answer_photo(
                 user_info[3],
-                caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.get_phone_by_user_id(user_id))[0]}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.get_tg_by_user_id(user_id))[0]}\n💸 Цена за месяц: от {user_info[4]} руб.""",
+                caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.get_phone_by_user_id(user_id))[0]}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.get_tg_by_user_id(user_id))[0]}\n💸 Цена за месяц: от {user_info[4]} руб.\n📝 Описание: {user_info[6]}""",
                 reply_markup=btns,
             )
         else:
             await message.edit_media(
                 media=InputMediaPhoto(
                     media=user_info[3],
-                    caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.get_phone_by_user_id(user_id))[0]}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.get_tg_by_user_id(user_id))[0]}\n💸 Цена за месяц: от {user_info[4]} руб.""",
+                    caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.get_phone_by_user_id(user_id))[0]}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.get_tg_by_user_id(user_id))[0]}\n💸 Цена за месяц: от {user_info[4]} руб.\n📝 Описание: {user_info[6]}""",
                 ),
                 reply_markup=btns,
             )
@@ -531,6 +557,21 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
 
 # endregion
 
+# async def hi(message: Message):
+#     await message.answer(text="hi2")
+#
+#
+# @dp.message(Command("abc"))
+# async def abc(message: Message):
+#     await message.answer(text="hi1")
+#     scheduler.add_job(hi, DateTrigger(run_date=datetime.now() + timedelta(seconds=10)), args=[message])
+
+
+async def sub_end(message: Message):
+
+    btns = [[InlineKeyboardButton(text="Продлить", callback_data="add_field|post")], [InlineKeyboardButton(text="Позже", callback_data="add_field|then")]]
+    await message.answer(text="Ваша анкета больше не видна полддьзователям,\n Хотите продлить подписку?")
+ 
 # region Message
 @dp.message()
 async def messages(message: Message, state: FSMContext):
@@ -626,13 +667,14 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
             ]
             btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
             await message.answer(f"""Этот контакт добавлен в избранное \n""", reply_markup=btn)
-            profile = await db.get_profile_by_id(int(data[2]))
-            smm_id, name, phone, user_id, age, town, cost, photo, tg = profile[0].split(",")
+            profile = await db.get_profile_by_id_str(int(data[2]))
+            smm_id, name, phone, user_id, age, city, cost, photo, tg, description = profile[0].split(",")
             await db.add_bought_contact(message.chat.id, user_id)
             await message.answer_photo(
                 photo,
-                caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {town}\n💬 Телеграм: @{tg[:-1]}""",
+                caption=f"""🙌 Имя: {name[1:-1]}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description[:-1]}\n💸 Цена за месяц: от {cost} руб.""",
             )
+            await bot.send_message(text="Вас добавили в избранное 👍", chat_id=int(data[2]))
             await message.delete()
         elif data[1] == "next":
             await list_of_smm(
@@ -657,6 +699,15 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
         elif data[1] == "post":
             await message.edit_text(text="Введите промокод или - если отсутвует")
             await state.set_state(st.promo)
+        elif data[1] == "then":
+            btn = [
+                [KeyboardButton(text="Меню ☰")],
+                [KeyboardButton(text="Избранные контакты 🤝")],
+                [KeyboardButton(text="Продлить подписку ")],
+            ]
+            btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+            await message.answer(text="Вы сможете продлить подписку нажав на соответствующую кнопку", reply_markup=btn)
+
     elif "field" in data[0]:
         ta = await db.get_ta_by_field(data[1])
         for i in range(len(ta)):
@@ -666,34 +717,22 @@ async def menu_handler(callback: CallbackQuery, state: FSMContext):
         else:
             await search_by_ta(message, ta)
     elif "photo" in data[0]:
+        await message.delete_reply_markup()
         if data[1] == "change":
             await change_photo(message=message, state=state)
         elif data[1] == "accept":
-            await send_cost(message=message, state=state)
+            await send_description(message=message, state=state)
     elif "free_sub" in data[0]:
         if data[1] == "use":
             await db.use_free_sub(int(data[2]))
-            year = datetime.year
-            month = datetime.month
-            day = datetime.day
-            hour = datetime.hour
-            minute = datetime.minute
-            second = datetime.second
-
-            #scheduler.add_job(sub_end, "data", datetime(), args=())
-
-# endregion
-
-# region Profile
-@dp.message(Command("profile"))
-async def profile(message: Message):
-    profile = await db.get_profile_by_id(message.chat.id)
-    id, name, phone, user_id, age, town, cost, photo, tg = profile[0].split(",")
-
-    await message.answer_photo(
-        photo,
-        caption=f"""🙌 Ваше имя: {name[1:-1]}\n📞 Ваш номер телефона: {phone}\n🎂 Ваш возраст: {age}\n🏙 Ваш город: {town}""",
-    )
+            scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=7)), args=[message])
+    elif "town" in data[0]:
+        await message.delete()
+        if not bool(int(data[1])):
+            await message.answer("Введите свой город 👇")
+            await state.set_state(st.town)
+        else:
+            await town(message, state, bool(int(data[1])), data[2])
 
 
 # endregion
@@ -701,9 +740,11 @@ async def profile(message: Message):
 # region Main()
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
+    scheduler.start()
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
+
     asyncio.run(main())
 # endregion

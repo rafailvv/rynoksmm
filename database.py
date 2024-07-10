@@ -25,7 +25,7 @@ async def get_profile_by_id(id):
     db, cur = await connect_db()
     cur.execute(
         f"""
-                    SELECT (smm.id, full_name, phone, user_id, age, town, cost, photo, username) 
+                    SELECT smm.id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub
                     FROM smm
                     INNER JOIN users
                     ON users.id = smm.user_id
@@ -36,6 +36,21 @@ async def get_profile_by_id(id):
     await disconnect_db(db, cur)
     return profile
 
+
+async def get_profile_by_id_str(id):
+    db, cur = await connect_db()
+    cur.execute(
+        f"""
+                    SELECT (smm.id, full_name, phone, user_id, age, town, cost, photo, username, description)
+                    FROM smm
+                    INNER JOIN users
+                    ON users.id = smm.user_id
+                    WHERE user_id = {id}
+                """
+    )
+    profile = cur.fetchone()
+    await disconnect_db(db, cur)
+    return profile
 
 async def get_ta_by_field(f):
     db, cur = await connect_db()
@@ -83,7 +98,7 @@ async def get_smm_by_ta(t):
     if len(t) > 1:
         cur.execute(
             f"""
-                        SELECT full_name, age, town, photo, cost, user_id
+                        SELECT full_name, age, town, photo, cost, user_id, description
                         FROM smm 
                         INNER JOIN target_audience_smm
                         ON target_audience_smm.smm_id = smm.user_id
@@ -93,7 +108,7 @@ async def get_smm_by_ta(t):
     else:
         cur.execute(
             f"""
-                        SELECT full_name, age, town, photo, cost, user_id
+                        SELECT full_name, age, town, photo, cost, user_id, description
                         FROM smm 
                         INNER JOIN target_audience_smm
                         ON target_audience_smm.smm_id = smm.user_id
@@ -103,9 +118,9 @@ async def get_smm_by_ta(t):
     smm = cur.fetchall()
     dict_of_smm = dict()  # Словарь из смм
     for (
-        x
+            x
     ) in (
-        smm
+            smm
     ):  # Идем по всем смм, у которых хотя бы какая-то ца есть в помеченных галочкой
         v = dict_of_smm.get(x[-1], list(x[:-1]) + [0])
         dict_of_smm[x[-1]] = v[:-1] + [
@@ -118,12 +133,12 @@ async def get_smm_by_ta(t):
     return dict_of_smm
 
 
-async def add_smm(user_id):
+async def add_smm(user_id, date):
     db, cur = await connect_db()
     cur.execute(
         f"""
-                    INSERT INTO smm(user_id) VALUES ({user_id}) ON CONFLICT (user_id) DO NOTHING
-                """
+            INSERT INTO smm(user_id, date_sub) VALUES ({user_id}, '{date}') ON CONFLICT (user_id) DO NOTHING
+        """
     )
     db.commit()
     await disconnect_db(db, cur)
@@ -244,19 +259,20 @@ async def get_bought_contacts(user_id):
     list_of_smm_id = cur.fetchall()
     dict_of_smm = dict()
     for smm_id in list_of_smm_id:
-        dict_of_smm[smm_id[0]] = await get_profile_by_id(smm_id[0])
+        dict_of_smm[smm_id[0]] = await get_profile_by_id_str(smm_id[0])
     await disconnect_db(db, cur)
     return dict_of_smm
 
 
-async def updt_user(user_id, fullname, phone, age, town, cost):
+async def updt_user(user_id, fullname, phone, age, town, cost, description):
     db, cur = await connect_db()
     cur.execute(f"""
                 UPDATE smm SET full_name='{fullname}',
                                phone='{phone}',
                                age={age},
                                town='{town}',
-                               cost={cost}
+                               cost={cost},
+                               description='{description}'
                 WHERE user_id={user_id}
                 """)
     db.commit()
@@ -309,7 +325,8 @@ async def edit_categories(categories):
     db, cur = await connect_db()
     cur.execute(f"DELETE FROM target_audience_smm WHERE smm_id = {categories.user_id}")
     for category in categories.categories:
-        cur.execute(f"INSERT INTO target_audience_smm (smm_id, target_audience_id) VALUES ({categories.user_id}, {await get_ta_id(category)})")
+        cur.execute(
+            f"INSERT INTO target_audience_smm (smm_id, target_audience_id) VALUES ({categories.user_id}, {await get_ta_id(category)})")
     db.commit()
     await disconnect_db(db, cur)
 
@@ -349,4 +366,24 @@ async def use_free_sub(user_id):
     cur.execute(f"""
                     UPDATE smm SET free_sub = {1} WHERE user_id = {user_id}
                 """)
+    db.commit()
     await disconnect_db(db, cur)
+
+
+async def add_description(user_id, description):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    UPDATE smm SET description = '{description}' WHERE user_id = {user_id}
+                """)
+    db.commit()
+    await disconnect_db(db, cur)
+
+
+async def is_smm(user_id):
+    db, cur = await connect_db()
+    cur.execute(f"""
+                    SELECT EXISTS (SELECT 1 FROM smm WHERE user_id = {user_id})
+                """)
+    is_smm = bool(cur.fetchone()[0])
+    await disconnect_db(db, cur)
+    return is_smm

@@ -9,4 +9,4 @@ class SmmStatesGroup(StatesGroup):
     cost = State()
     photo = State()
     promo = State()
-
+    description = State()

@@ -8,6 +8,10 @@
     <link href="/templates/profile_styles.css" rel="stylesheet">
 </head>
 <body>
+<div id="loading" class="loading-overlay">
+    <img src="/templates/images/gear.gif" alt="Loading">
+</div>
+
 <!-- Modal -->
 <div class="modal fade" id="accessModal" tabindex="-1" role="dialog" aria-labelledby="accessModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
@@ -46,6 +50,8 @@
                 <li><strong>Возраст:</strong> <span id="age">{{age}}</span></li>
                 <li><strong>Город:</strong> <span id="city">{{town}}</span></li>
                 <li><strong>Цена:</strong> от <span id="cost">{{cost}}</span>₽</li>
+                <li><strong>Описание:</strong> <span id="description">{{description}}</span></li>
+                <li><strong id="date_sub">{{date_sub}}</strong></li>
             </ul>
             <div id="directions"></div>
 
@@ -110,6 +116,11 @@
                         15000.</small>
                     <small id="editCostErrorUncorrect" class="text-danger" style="display: none;">Некорректная
                         цена.</small>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Описание</label> <!-- Новое поле для описания -->
+                    <textarea class="form-control" id="editDescription" name="description" maxlength="500" required placeholder="Описание профиля"></textarea>
+                    <small id="editDescriptionError" class="text-danger" style="display: none;">Пожалуйста, заполните это поле (максимум 500 символов).</small>
                 </div>
             </div>
             <div class="modal-footer">
