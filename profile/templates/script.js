@@ -225,29 +225,27 @@ function changePhoto() {
 
 function handleFileChange(event) {
   const file = event.target.files[0];
-
+  console.log('File uploaded:', file);
   if (file) {
     // Получаем расширение файла
-    const extension = file.name.split('.').pop();
+    var extension = file.name.split('.').pop();
 
     // Создаем новое имя файла с user_id и оригинальным расширением
-    const newFileName = `${user_id}.${extension}`;
+    var newFileName = `${user_id}.${extension}`;
 
 
     // Создаем новый объект File с переименованным именем
-    const renamedFile = new File([file], newFileName, { type: file.type });
+    var renamedFile = new File([file], newFileName, { type: file.type });
 
     // Создаем объект FormData для передачи файлов
-    const formData = new FormData();
+    var formData = new FormData();
 
-
-    formData.append("user_id", user_id);
-    formData.append('file', renamedFile);
+    formData.append('file', file);
 
     // URL вашего FastAPI сервера
-        const uploadUrl = '/upload';
+        var uploadUrl = `/upload/${user_id}`;
 //    const uploadUrl = 'http://127.0.0.1:80/upload';
-
+    console.log(formData);
 
     // Отправляем запрос на сервер
     fetch(uploadUrl, {
@@ -259,10 +257,13 @@ function handleFileChange(event) {
       console.log('Success:', data);
       // Обновляем изображение на странице
       document.getElementById('photo').src = `/templates/images/${user_id}.jpg`; // предполагая, что сервер возвращает URL загруженного изображения
+      location.reload();
     })
     .catch(error => console.error('Error:', error));
   }
 }
+
+
 
 function toggleContent(element) {
     var content = document.getElementById('content' + element.id);

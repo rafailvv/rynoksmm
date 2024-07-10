@@ -12,6 +12,9 @@ from starlette.templating import Jinja2Templates
 import database as db
 from typing import List
 from datetime import datetime
+from main import cut_photo
+
+from PIL import Image
 # endregion
 
 app = FastAPI()
@@ -124,17 +127,28 @@ async def update(user: User):
     )
 
 
-@mainpage_router.post("/upload")
+@mainpage_router.post("/upload/{user_id}")
 async def upload_file(user_id: str, file: UploadFile = File(...)):
     try:
         if not user_id:
             raise ValueError("User ID is not provided.")
 
         extension = file.filename.split('.')[-1]
+
         new_file_name = f"{user_id}.{extension}"
         file_path = os.path.join("profile/templates/images", new_file_name)
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
+        if extension != "jpg":
+            im = Image.open(f"{file_path}")
+            rgb_im = im.convert('RGB')
+            rgb_im.save(f"profile/templates/images/" + f"{user_id}.jpg")
+            try:
+                os.remove(f"{file_path}")
+            except Exception as e:
+                pass
+            new_file_name = f"{user_id}.jpg"
+        await cut_photo(user_id, new_file_name)
         return {"filename": new_file_name}
 
     except Exception as e:

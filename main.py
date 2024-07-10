@@ -350,6 +350,9 @@ async def cut_photo(user_id, file_path):
         photo = photo.crop((0, (height - width) // 2, width, width + (height - width) // 2))
     else:
         photo = photo.crop(((width - height) // 2, 0, height + (width - height) // 2, height))
+
+    photo = photo.convert("RGB")
+
     photo.save(f"profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
 
 
