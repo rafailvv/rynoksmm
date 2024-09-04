@@ -208,9 +208,9 @@ class SmmQueries(BaseDatabase):
             )
             await session.commit()
 
-    async def add_payment(self, user_id, start_time, finish_time, cost):
+    async def add_payment(self, user_id, start_time, finish_time, cost, payment_id=None):
         async with self.db() as session:
-            new_payment = Payments(user_id=user_id, start_time=start_time, finish_time=finish_time, cost=cost)
+            new_payment = Payments(user_id=user_id, start_time=start_time, finish_time=finish_time, cost=cost, payment_id=payment_id)
             session.add(new_payment)
             await session.commit()
 
@@ -228,13 +228,53 @@ class SmmQueries(BaseDatabase):
             result = await session.execute(
                 select(Payments.user_id, Users.username, Payments.start_time, Payments.finish_time, Payments.cost)
                 .join(Users, Users.id == Payments.user_id)
-                .where((datetime.utcnow() - timedelta(days=days_to)) >= Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
+                .where((datetime.utcnow() - timedelta(days=days_to)) >= Payments.start_time)
+                .where(Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
             )
             return result.fetchall()
 
     async def get_total_cost_for_last_days(self, days_from, days_to):
         async with self.db() as session:
             result = await session.execute(
-                select(func.sum(Payments.cost)).where((datetime.utcnow() - timedelta(days=days_to)) >= Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
+                select(func.sum(Payments.cost)).where(
+                    (datetime.utcnow() - timedelta(days=days_to)) >= Payments.start_time).where(
+                    Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
             )
-            return result.scalar() or 0
+            return result.scalar() // 100 or 0
+
+    async def use_promo(self, promo, user_id):
+        async with self.db() as session:
+            await session.execute(
+                update(Smm).where(Smm.user_id == user_id).values(promos=Promocodes.promo + "," + promo)
+            )
+            await session.execute(
+                update(Promocodes).where(Promocodes.promo == promo).values(usage=Promocodes.usage - 1)
+            )
+            await session.commit()
+
+    async def get_users_promos(self, user_id):
+        async with self.db() as session:
+            result = await session.execute(
+                select(Smm.promos).where(Smm.user_id == user_id)
+            )
+            return result.fetchall()
+
+    async def get_promo_usage(self, promo):
+        async with self.db() as session:
+            result = await session.execute(
+                select(Promocodes.usage).where(Promocodes.promo == promo)
+            )
+            return result.scalar()
+
+    async def get_all_promos(self):
+        async with self.db() as session:
+            result = await session.execute(
+                select(Promocodes.promo, Promocodes.usage, Promocodes.users, Promocodes.duration, Promocodes.text_)
+            )
+
+            result = result.fetchall()
+            promos = dict()
+            for i in range(len(result)):
+                promos[result[i][0]] = (result[i][1], result[i][2], result[i][3], result[i][4])
+            return promos
+

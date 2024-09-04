@@ -10,3 +10,6 @@ class SmmStatesGroup(StatesGroup):
     photo = State()
     promo = State()
     description = State()
+    support = State()
+    support_reply = State()
+    clear = State()

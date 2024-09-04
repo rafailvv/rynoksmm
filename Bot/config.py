@@ -27,10 +27,17 @@ class RedisConfig:
 
 
 @dataclass
+class Yookassa:
+    shop_id: int
+    secret_key: str
+
+
+@dataclass
 class Config:
     tg_bot: TgBotConfig
     db: DbConfig
     redis: RedisConfig
+    yookassa: Yookassa
 
 
 def load_config(path: str = None):
@@ -39,7 +46,8 @@ def load_config(path: str = None):
 
     return Config(
         tg_bot=TgBotConfig(
-            token=env.str("BOT_TOKEN"), pay_token=env.str("PAY_TOKEN"), admins=env.str("ADMINS").split(",")),
+            token=env.str("BOT_TOKEN"), pay_token=env.str("PAY_TOKEN"),
+            admins=list(map(int, env.str("ADMINS").split(",")))),
         db=DbConfig(
             host=env.str("DB_HOST"),
             password=env.str("DB_PASS"),
@@ -48,6 +56,10 @@ def load_config(path: str = None):
             port=env.str("DB_PORT"),
         ),
         redis=RedisConfig(host=env.str("REDIS_HOST"), use_redis=env.bool("USE_REDIS")),
+        yookassa=Yookassa(
+            shop_id=env.int("YOOKASSA_SHOP_ID"),
+            secret_key=env.str("YOOKASSA_SECRET_KEY")
+        )
     )
 
 

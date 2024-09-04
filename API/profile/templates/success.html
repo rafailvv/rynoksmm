@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Rubik&display=swap"
+          rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Успех!</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 70%;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            transform: scale(0); /* Начальное состояние контейнера */
+            animation: zoomIn 0.5s ease-in-out forwards; /* Применение анимации */
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0); /* Начальное состояние: масштаб 0 */
+            }
+            to {
+                transform: scale(1); /* Конечное состояние: масштаб 1 */
+            }
+        }
+
+        .checkmark {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        .success-message {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .checkout-button {
+            background-color: #9C7CFC;
+            color: white;
+            border: 1px solid black;
+            border-radius: 25px;
+            padding: 10px 0;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .checkout-button:hover {
+            background-color: #7F5FFF;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="/templates/images/done.png" class="checkmark">
+    <div class="success-message">Оплата прошла успешно!</div>
+    <button class="checkout-button" onclick="redirectToTraining()">Активировать подписку</button>
+</div>
+
+<script>
+    // Функция для получения значения параметра из URL
+    function getParameterByName(name) {
+        const url = new URL(window.location.href);
+        const params = new URLSearchParams(url.search);
+        return params.get(name);
+    }
+
+    if (window.Telegram.WebApp.colorScheme == "dark") {
+        document.body.style.color = "#ffffff";
+        document.body.style.backgroundColor = 'black';
+    }
+
+    // Функция для перехода к обучению с закрытием WebApp
+    function redirectToTraining() {
+        const payment_id = getParameterByName('payment_id');
+        if (payment_id) {
+            window.Telegram.WebApp.openTelegramLink(`https://t.me/rynoksmm_bot?start=pay_post_${payment_id}`);
+            window.Telegram.WebApp.close();
+        } else {
+            alert("Параметр payment_id не найден в URL");
+        }
+    }
+</script>
+
+</body>
+</html>

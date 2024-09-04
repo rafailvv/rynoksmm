@@ -1,0 +1,43 @@
+.email-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-size: 110%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.email-container label {
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.email-container input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 80%;
+}
+
+.button-container {
+    margin-top: 20px;
+}
+
+.button-container button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.button-container button:hover {
+    background-color: #45a049;
+}
+
+#payment-form {
+    display: none; /* Скрыть платежную форму по умолчанию */
+}

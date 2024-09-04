@@ -1,8 +1,31 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Identity, Integer, Text, text
+from sqlalchemy.dialects.postgresql import UUID
 
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+
+class Promocodes(Base):
+    __tablename__ = 'promocodes'
+
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    promo = Column(Text, nullable=False)
+    usage = Column(Integer, nullable=False)
+    users = Column(Text, nullable=False)
+    duration = Column(Integer, nullable=False)
+    text_ = Column('text', Text, nullable=False)
+
+
+class Support(Base):
+    __tablename__ = 'support'
+
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    request = Column(Text)
+    user_id = Column(BigInteger)
+    answered = Column(Integer)
+    tg_url = Column(Text)
+
 
 
 class TargetAudience(Base):
@@ -21,21 +44,9 @@ class Users(Base):
     id = Column(BigInteger, primary_key=True)
     username = Column(Text)
 
-    contacts = relationship('Contacts', foreign_keys=['Contacts.smm_id'], back_populates='smm')
-    contacts_ = relationship('Contacts', foreign_keys=['Contacts.user_id'], back_populates='user')
     payments = relationship('Payments', back_populates='user')
     smm = relationship('Smm', uselist=False, back_populates='user')
-
-
-class Contacts(Base):
-    __tablename__ = 'contacts'
-
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
-    user_id = Column(ForeignKey('users.id'), nullable=False)
-    smm_id = Column(ForeignKey('users.id'), nullable=False)
-
-    smm = relationship('Users', foreign_keys=[smm_id], back_populates='contacts')
-    user = relationship('Users', foreign_keys=[user_id], back_populates='contacts_')
+    contacts = relationship('Contacts', back_populates='user')
 
 
 class Payments(Base):
@@ -45,7 +56,8 @@ class Payments(Base):
     user_id = Column(ForeignKey('users.id'), nullable=False)
     start_time = Column(DateTime, nullable=False)
     finish_time = Column(DateTime, nullable=False)
-    cost = Column(Integer, nullable=False)
+    cost = Column(BigInteger, nullable=False)
+    payment_id = Column(UUID)
 
     user = relationship('Users', back_populates='payments')
 
@@ -64,9 +76,11 @@ class Smm(Base):
     free_sub = Column(Integer, server_default=text('0'))
     description = Column(Text)
     date_sub = Column(DateTime)
+    promos = Column(Text)
 
     user = relationship('Users', back_populates='smm')
     cases = relationship('Cases', back_populates='smm')
+    contacts = relationship('Contacts', back_populates='smm')
 
 
 class TargetAudienceSmm(Base):
@@ -88,3 +102,14 @@ class Cases(Base):
     link = Column(Text, nullable=False)
 
     smm = relationship('Smm', back_populates='cases')
+
+
+class Contacts(Base):
+    __tablename__ = 'contacts'
+
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    user_id = Column(ForeignKey('users.id'), nullable=False)
+    smm_id = Column(ForeignKey('smm.id'), nullable=False)
+
+    smm = relationship('Smm', back_populates='contacts')
+    user = relationship('Users', back_populates='contacts')

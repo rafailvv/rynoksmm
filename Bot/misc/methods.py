@@ -42,6 +42,9 @@ from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 from datetime import datetime, timedelta
 
+from Bot.misc.bot import bot
+from Bot.config import config
+
 
 async def pay_for_publication(user_id, duration, price):
     buttons = InlineKeyboardMarkup(
@@ -51,7 +54,7 @@ async def pay_for_publication(user_id, duration, price):
         chat_id=user_id,
         title="Опубликовать свой профиль",
         description="После публикации ваш профиль смогут найти заинтересованные пользователи",
-        provider_token=config["PAY_TOKEN"],
+        provider_token=config.tg_bot.pay_token,
         currency="RUB",
         # photo_url="https://i.ibb.co/448wWGc/avatar.png",
         # photo_width=640,
@@ -69,6 +72,7 @@ async def pay_for_publication(user_id, duration, price):
         #                 "description": "билет на ",
         #                 "quantity": "1.00",
         #                 "amount": {
+        #                 "amount": {
         #                     "value": str(price),
         #                     "currency": "RUB",
         #                 },
@@ -84,43 +88,48 @@ async def pay_for_publication(user_id, duration, price):
 async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=True):
     if len(dict_of_smm) == 0:
         await message.answer("🤷‍♂️ Вы пока ещё не выбрали ни одного контакта")
-    await state.update_data(dos=dict_of_smm)
-    await state.update_data(it=i)
-    dict_of_smm = list(dict_of_smm.items())
-    smm = dict_of_smm[i]
-    user_id = smm[0]
-    user_info = smm[1]
-    smm_id, name, phone, user_id, age, city, cost, photo, tg, description = user_info
-    prev = InlineKeyboardButton(
-        text="⬅️ Предыдущий", callback_data=f"contacts_smm|prev"
-    )
-    next = InlineKeyboardButton(text="Следующий ➡️", callback_data=f"contacts_smm|next")
-
-    btns = []
-    if len(dict_of_smm) > 1:
-        if i == 0:
-            btns = [[next]]
-        elif i == len(dict_of_smm) - 1:
-            btns = [[prev]]
-        else:
-            btns = [[prev, next]]
-    btns = InlineKeyboardMarkup(inline_keyboard=btns)
-    photo = FSInputFile(os.path.join(f"API/profile/templates/images/{user_id}.jpg"))
-    if not fl:
-
-        await message.answer_photo(
-            photo,
-            caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
-            reply_markup=btns,
-        )
     else:
-        await message.edit_media(
-            media=InputMediaPhoto(
-                media=photo,
-                caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
-            ),
-            reply_markup=btns,
+        await state.update_data(dos=dict_of_smm)
+        await state.update_data(it=i)
+        dict_of_smm = list(dict_of_smm.items())
+        smm = dict_of_smm[i]
+        user_id = smm[0]
+        user_info = smm[1]
+        smm_id, name, phone, user_id, age, city, cost, photo, tg, description = user_info
+        prev = InlineKeyboardButton(
+            text="⬅️ Предыдущий", callback_data=f"contacts_smm|prev"
         )
+        next = InlineKeyboardButton(text="Следующий ➡️", callback_data=f"contacts_smm|next")
+        remove = InlineKeyboardButton(
+            text="Удалить из избранного ❌", callback_data=f"contacts_smm|remove|{user_id}"
+        )
+        btns = []
+        if len(dict_of_smm) > 1:
+            if i == 0:
+                btns = [[remove], [next]]
+            elif i == len(dict_of_smm) - 1:
+                btns = [[remove], [prev]]
+            else:
+                btns = [[remove], [prev, next]]
+        else:
+            btns = [[remove]]
+        btns = InlineKeyboardMarkup(inline_keyboard=btns)
+        photo = FSInputFile(os.path.join(f"API/profile/templates/images/{user_id}.jpg"))
+        if not fl:
+
+            await message.answer_photo(
+                photo,
+                caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
+                reply_markup=btns,
+            )
+        else:
+            await message.edit_media(
+                media=InputMediaPhoto(
+                    media=photo,
+                    caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
+                ),
+                reply_markup=btns,
+            )
 
 
 async def ta_choose(message: Message, t=None, fl=True):
@@ -148,11 +157,17 @@ async def send_notification(user_id):
     tas = await db.ta.get_ta_by_user_id(user_id)
     smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
         user_id)
-    if None in [full_name, phone, age, town, cost, description, date_sub] or len(tas) == 0 or f"{user_id}.jpg" not in os.listdir("profile/templates/images"):
-        btn = [[KeyboardButton(text="Меню ☰")], [KeyboardButton(text="Избранные контакты 🤝")],
+    if None in [full_name, phone, age, town, cost, description, date_sub] or len(
+            tas) == 0 or f"{user_id}.jpg" not in os.listdir("profile/templates/images"):
+        btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+               [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]
+        if user_id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await bot.send_message(chat_id=user_id, text=f"{message.chat.first_name}, у вас не заполнен профиль,\nвы можете дозаполнить, чтобы опубликовать его, нажав на кнопку 'Профиль'", reply_markup=btn)
+        await bot.send_message(chat_id=user_id,
+                               text=f"{message.chat.first_name}, у вас не заполнен профиль,\nвы можете дозаполнить, чтобы опубликовать его, нажав на кнопку 'Профиль'",
+                               reply_markup=btn)
 
 
 async def cut_photo(user_id, file_path):
@@ -225,9 +240,14 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
         smm = dict_of_smm[i]
         user_id = smm[0]
         user_info = smm[1]
-        buy = InlineKeyboardButton(
-            text="Добавить в избранное 💰", callback_data=f"choose_smm|buy|{user_id}"
-        )
+        if await db.contacts.is_contact(message.chat.id, user_id):
+            buy = InlineKeyboardButton(
+                text="Удалить из избранного ❌", callback_data=f"choose_smm|remove|{user_id}"
+            )
+        else:
+            buy = InlineKeyboardButton(
+                text="Добавить в избранное 💰", callback_data=f"choose_smm|buy|{user_id}"
+            )
         prev = InlineKeyboardButton(
             text="⬅️ Предыдущий", callback_data=f"choose_smm|prev"
         )
@@ -278,4 +298,38 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
 async def sub_end(user_id):
     btns = [[InlineKeyboardButton(text="Продлить", callback_data="add_field|post")],
             [InlineKeyboardButton(text="Позже", callback_data="add_field|then")]]
-    await bot.send_message(chat_id=user_id, text="Ваша анкета больше не видна пользователям,\nХотите продлить подписку?")
+    await bot.send_message(chat_id=user_id,
+                           text="Ваша анкета больше не видна пользователям,\nХотите продлить подписку?")
+
+
+async def iterate_requests(message: Message, state: FSMContext, requests, i=0, fl=False):
+    if len(requests) == 0:
+        await message.answer(text="На данный момент нет вопросов")
+    else:
+        btns = [
+            [InlineKeyboardButton(text="Ответить", callback_data=f"req|reply|{requests[i][1]}")],
+        ]
+        next = InlineKeyboardButton(text="Следующий", callback_data=f"req|next|{i}")
+        prev = InlineKeyboardButton(text="Предыдущий", callback_data=f"req|prev|{i}")
+
+        if i == 0:
+            move_btn = [next]
+        elif i == len(requests) - 1:
+            move_btn = [prev]
+        else:
+            move_btn = [prev, next]
+
+        if len(requests) != 1:
+            btns.append(move_btn)
+        btns = InlineKeyboardMarkup(inline_keyboard=btns)
+
+        request = requests[i][0]
+        user_id = requests[i][1]
+        tg_url = requests[i][2]
+        await state.update_data(request=requests, user_id=user_id, i=i)
+        if fl:
+            await message.edit_text(text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>", parse_mode="HTML",
+                                    reply_markup=btns)
+        else:
+            await message.answer(text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>", parse_mode="HTML",
+                                 reply_markup=btns)

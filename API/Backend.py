@@ -9,12 +9,17 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
-from Database import database as db
+from Database.manager import db
 from typing import List
 from datetime import datetime
 from Bot.misc.methods import cut_photo
 
 from PIL import Image
+
+from yookassa import Configuration, Payment
+import uuid
+
+from Bot.config import config
 # endregion
 
 app = FastAPI()
@@ -150,6 +155,66 @@ async def save_categories(categories: Categories):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+class PaymentRequest(BaseModel):
+    client_id: int
+    price: int
+    days: int
+    email: str
+
+
+@mainpage_router.post("/payment/token")
+async def get_confirmation_token(payment_request: PaymentRequest):
+    # Настройка конфигурации YooKassa
+    Configuration.account_id = config.yookassa.shop_id
+    Configuration.secret_key = config.yookassa.secret_key
+
+    # Получение данных из запроса
+    client_id = payment_request.client_id
+    price = payment_request.price
+    days = payment_request.days
+    email = payment_request.email
+
+    # Преобразование цены
+    price = str(max(0, int(price * 100)) / 100)
+
+    # Создание платежа
+    idempotence_key = str(uuid.uuid4())
+    payment = Payment.create({
+        "amount": {
+            "value": price,
+            "currency": "RUB"
+        },
+        "confirmation": {
+            "type": "embedded"
+        },
+        "receipt": {
+            "items": [
+                {
+                    "amount": {
+                        "value": price,
+                        "currency": "RUB"
+                    },
+                    "quantity": 1,
+                    "description": f"Подписка {days}",
+                    "vat_code": 1,
+                    "payment_subject": "service",
+                    "payment_mode": "full_prepayment"
+                }
+            ],
+            "customer": {
+                "email": email
+            }
+        },
+        "capture": True,
+        "test": True,
+        "description": f"Подписка {days}",
+        "metadata": {"client_id": client_id, "type": "subscription", "days": days}
+    }, idempotence_key)
+
+    # Получение и возврат токена подтверждения
+    confirmation_token = payment.confirmation.confirmation_token
+    return {"id": payment.id, "confirmation_token": confirmation_token}
 
 app.include_router(mainpage_router)
 if __name__ == "__main__":

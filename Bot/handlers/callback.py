@@ -86,7 +86,7 @@ async def ta(callback: CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="Выбрать доп. сферу деятельности", callback_data="add_field|add_sp")],
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
-        await message.answer(text="Сфера деятелльности успешно выбрана", reply_markup=btn)
+        await message.answer(text="Сфера деятельности успешно выбрана", reply_markup=btn)
         await message.delete()
     elif data[1] == "back":
         await search_by_field(message, state, smm=True, edit=True)
@@ -137,9 +137,11 @@ async def choose_smm(callback: CallbackQuery, state: FSMContext):
     data = callback.data.split("|")
     if data[1] == "buy":
         btn = [
-            [KeyboardButton(text="Меню ☰")],
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
             [KeyboardButton(text="Избранные контакты 🤝")],
         ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         if await db.smm.is_smm(message.chat.id) and await db.smm.get_date_sub(message.chat.id) < datetime.utcnow():
             btn.append([KeyboardButton(text="Оформить подписку 🎟")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
@@ -162,6 +164,10 @@ async def choose_smm(callback: CallbackQuery, state: FSMContext):
         await list_of_smm(
             message, state_data["dos"], state_data["it"] - 1, state, True
         )
+    elif data[1] == "remove":
+        await db.contacts.remove_contact(message.chat.id, int(data[2]))
+        await message.answer(text="Контакт удален из избранного")
+        await list_of_smm(message, state_data["dos"], state_data["it"], state)
     await callback.answer()
 
 
@@ -178,6 +184,11 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         await contacts(
             message, state, state_data["dos"], state_data["it"] - 1, True
         )
+    elif data[1] == "remove":
+        await db.contacts.remove_contact(message.chat.id, int(data[2]))
+        await message.answer(text="Контакт удален из избранного")
+        dict_of_contacts = await db.contacts.get_bought_contacts(message.chat.id)
+        await contacts(message, state, dict_of_contacts)
     await callback.answer()
 
 
@@ -198,10 +209,12 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         await state.set_state(st.promo)
     elif data[1] == "then":
         btn = [
-            [KeyboardButton(text="Меню ☰")],
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
             [KeyboardButton(text="Избранные контакты 🤝")],
             [KeyboardButton(text="Оформить подписку 🎟 ")],
         ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await message.answer(text="Вы сможете продлить подписку нажав на соответствующую кнопку", reply_markup=btn)
     elif data[1] == "promo_skip":
@@ -249,9 +262,11 @@ async def menu(callback: CallbackQuery, state: FSMContext):
 
     if data[1] == "use":
         btn = [
-            [KeyboardButton(text="Меню ☰")],
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
             [KeyboardButton(text="Избранные контакты 🤝")],
         ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await message.answer(text="Подписка успешно продлена на 7 дней!\nТеперь ваш профиль виден другим пользователям", reply_markup=btn)
         await db.smm.use_free_sub(int(data[2]))
@@ -285,5 +300,27 @@ async def menu(callback: CallbackQuery, state: FSMContext):
     data = callback.data.split("|")
 
     await pay_for_publication(message.chat.id, int(data[1]), int(data[2]))
+    await callback.answer()
+
+
+@callback_router.callback_query(lambda q: "req" == q.data.split('|')[0])
+async def support(callback: CallbackQuery, state: FSMContext):
+    state_data = await state.get_data()
+    message = callback.message
+    data = callback.data.split("|")
+    
+    if data[1] == "reply":
+        if await db.users.is_answered(state_data["request"][state_data['i']][0], int(data[2])):
+            await message.answer(text="Эта заявка уже отвечена")
+            await requests(message, state)
+        else:
+            await message.answer(text="Введите текст, который хотите отправить пользователю:")
+            await state.update_data(user_id=data[2])
+            await state.set_state(st.support_reply)
+    elif data[1] == "next":
+        await iterate_requests(message, state, state_data["request"], int(data[2]) + 1, fl=True)
+    elif data[1] == "prev":
+        await iterate_requests(message, state, state_data["request"], int(data[2]) - 1, fl=True)
+    await callback.answer()
 
 

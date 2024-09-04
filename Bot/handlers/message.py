@@ -5,6 +5,8 @@ import asyncio
 import os
 import uuid
 
+from Bot.config import config
+
 import PIL.ImageOps
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.enums import ContentType
@@ -22,7 +24,8 @@ from aiogram.types import (
     FSInputFile,
     CallbackQuery,
     InputMediaPhoto,
-    InputMediaDocument
+    InputMediaDocument,
+    WebAppInfo
 )
 from aiogram.filters import Command, CommandStart
 from aiogram.filters.command import CommandObject
@@ -34,7 +37,6 @@ from Database.manager import db
 
 from Bot.misc.states import SmmStatesGroup as st
 from Bot.misc.methods import *
-
 
 from PIL import Image, ImageDraw
 
@@ -49,29 +51,44 @@ from datetime import datetime, timedelta
 from Bot.misc.scheduler import scheduler
 from Bot.misc.bot import bot
 
+from yookassa import Configuration, Payment
+import uuid
+from yookassa.domain.response import PaymentResponse
 
 message_router = Router()
 
 
-@message_router.pre_checkout_query()
-async def process_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
-    await pre_checkout_query.answer(ok=True)
-
-
-@message_router.message(lambda message: message.content_type in {ContentType.SUCCESSFUL_PAYMENT})
-async def got_payment(message: Message, state: FSMContext):
-    payload = message.successful_payment.invoice_payload.split("|")
-    if payload[0] == "post":
+async def got_payment(message: Message, payment_response: PaymentResponse, payment_type, payment_id):
+    if payment_type == "post":
         btn = [
-            [KeyboardButton(text="Меню ☰")],
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
             [KeyboardButton(text="Избранные контакты 🤝")],
         ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer(text="Оплата прошла успешно!\nТеперь ваш профиль виден другим пользователям", reply_markup=btn)
+        await message.answer(text="Оплата прошла успешно!\nТеперь ваш профиль виден другим пользователям",
+                             reply_markup=btn)
 
-        scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=30 * int(payload[1]))), args=[message.chat.id])
-        await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=30 * int(payload[1])))
-        await db.smm.add_payment(message.chat.id, datetime.utcnow(), datetime.utcnow() + timedelta(days=30 * int(payload[1])), message.successful_payment.total_amount)
+        scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=int(payment_response.metadata.get('days')))),
+                          args=[message.chat.id])
+        await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))))
+        await db.smm.add_payment(message.chat.id, datetime.utcnow(),
+                                 datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))),
+                                 int(payment_response.amount.value), payment_id)
+
+
+@message_router.message(Command("stats"))
+async def stats(message: Message, state: FSMContext):
+    if message.chat.id in config.tg_bot.admins:
+        cnt_users = len(await db.smm.get_active_payment())
+        users_lw = len(await db.smm.get_payments_for_last_days(7, 0))
+        cost_lw = await db.smm.get_total_cost_for_last_days(7, 0)
+        users_pw = len(await db.smm.get_payments_for_last_days(14, 7))
+        await message.answer(
+            text=f"Кол-во пользователей с подпиской: {cnt_users}\nКол-во пользователей за неделю: {users_lw}\nКол-во денег за неделю: {cost_lw} ₽\nИзменение кол-ва пользователей за последнюю неделю {round(((users_lw - users_pw) / (users_pw if users_pw != 0 else 1)) * 100)}%")
+    else:
+        await message.answer(text="Вы не являетесь администратором")
 
 
 @message_router.message(Command("delete"))
@@ -99,9 +116,11 @@ async def start(message: Message):
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
     btn = [
-        [KeyboardButton(text="Меню ☰")],
+        [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
         [KeyboardButton(text="Избранные контакты 🤝")],
     ]
+    if message.chat.id in config.tg_bot.admins:
+        btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
     if await db.smm.is_smm(message.chat.id) and await db.smm.get_date_sub(message.chat.id) < datetime.utcnow():
         btn.append([KeyboardButton(text="Оформить подписку 🎟")])
     btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
@@ -126,6 +145,18 @@ async def deep_link_start(message: Message, state: FSMContext):
         await state.clear()
         await state.update_data(ta=[])
         await search_by_field(message, state)
+    elif data.startswith("pay"):
+        _, payment_type, payment_id = data.split("_")
+        Configuration.account_id = config.yookassa.shop_id
+        Configuration.secret_key = config.yookassa.secret_key
+        payment_response = Payment.find_one(payment_id)
+        purchase_with_payment_id = await db.users.get_purchase_by_payment_id(payment_id)
+        if payment_response.status != "succeeded":
+            await message.answer("Во время оплаты произошла ошибка, обратитесь  тех. поддержку")
+            return
+        if purchase_with_payment_id is None and message.chat.id == int(payment_response.metadata.get("client_id")):
+            await got_payment(message, payment_response, payment_type, payment_id)
+            return
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
@@ -228,7 +259,8 @@ async def photo(message: Message, state: FSMContext):
         file_path = file.file_path
         await bot.download_file(file_path, f"API/profile/templates/images/{message.chat.id}.{file_path.split('.')[-1]}")
         await db.smm.add_photo(message.chat.id,
-                           message.photo[-1].file_id if message.content_type == "photo" else message.animation.file_id)
+                               message.photo[
+                                   -1].file_id if message.content_type == "photo" else message.animation.file_id)
         await cut_photo(message.chat.id, file_path)
         btns = [[InlineKeyboardButton(text="Изменить", callback_data="photo|change"),
                  InlineKeyboardButton(text="Применить", callback_data="photo|accept")]]
@@ -268,19 +300,64 @@ async def cost(message: Message, state: FSMContext):
         )
 
 
+@message_router.message(F.text == "Тех. поддержка 🛠")
+async def support(message: Message, state: FSMContext):
+    await message.answer("Здравствуйте! Это служба технической поддержки.\nКак мы можем вам помочь?")
+    await state.set_state(st.support)
+
+
+@message_router.message(st.support)
+async def ans_sup(message: Message, state: FSMContext):
+    await message.answer(text="Ваше собщение было доставлено администратору. Ожидайте ответа")
+    await db.users.add_support_request(message.text, message.chat.id, message.from_user.url)
+    state_data = await state.get_data()
+    await state.clear()
+    await state.update(state_data)
+    for admin in config.tg_bot.admins:
+        await bot.send_message(chat_id=admin,
+                               text=f"Вам пришло уведомление!\n\nПользователь <a href={message.from_user.url}>{message.chat.first_name}</a> обратился в тех. поддержку",
+                               parse_mode="HTML")
+
+
+@message_router.message(F.text == "Просмотреть заявки 📩")
+async def requests(message: Message, state: FSMContext):
+    if message.chat.id in config.tg_bot.admins:
+        requests = await db.users.get_support_requests()
+        await iterate_requests(message, state, requests)
+    else:
+        await message.answer("Вы не являетесь администратором")
+
+
+@message_router.message(st.support_reply)
+async def support_reply(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    await bot.send_message(chat_id=state_data["user_id"],
+                           text=f"Вам пришло уведомление от Администратора!\n\n{message.text}")
+    await message.answer(text="Сообщение доставлено!")
+    await db.users.answer_request(state_data["request"][state_data["i"]][0], state_data["request"][state_data["i"]][1])
+    await requests(message, state)
+
+
 @message_router.message(st.promo)
 async def promo(message: Message, state: FSMContext, fl=True, promo=None):
     user_id = message.chat.id
+
     if promo is None:
         promo = message.text
-
+    promo = promo.lower()
     tas = await db.ta.get_ta_by_user_id(user_id)
-    smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(user_id)
-    if None in [full_name, phone, age, town, cost, description, date_sub] or len(tas) == 0 or f"{user_id}.jpg" not in os.listdir("API/profile/templates/images"):
-        btn = [[KeyboardButton(text="Меню ☰")], [KeyboardButton(text="Избранные контакты 🤝")],
+    smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
+        user_id)
+    if None in [full_name, phone, age, town, cost, description, date_sub] or len(
+            tas) == 0 or f"{user_id}.jpg" not in os.listdir("API/profile/templates/images"):
+        btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+               [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer("Пожалуйста, заполните все поля профиля, нажав на кнопку 'Профиль', и повторите попытку", reply_markup=btn)
+        await message.answer("Пожалуйста, заполните все поля профиля, нажав на кнопку 'Профиль', и повторите попытку",
+                             reply_markup=btn)
         return
     if promo == "-":
         if fl and not await db.smm.is_used_free_sub(message.chat.id):
@@ -289,41 +366,71 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
             btns = InlineKeyboardMarkup(inline_keyboard=btns)
             await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
         else:
-            cost = 1000
+            cost = 1
             discount3 = 0.1
             discount6 = 0.25
             discount12 = 0.4
+            # btn = [
+            #     [InlineKeyboardButton(text="1 месяц", callback_data=f"sub|1|{cost}|{user_id}")],
+            #     [InlineKeyboardButton(text="3 месяца",
+            #                           callback_data=f"sub|3|{int(3 * cost * (1 - discount3))}|{user_id}")],
+            #     [InlineKeyboardButton(text="6 месяцев",
+            #                           callback_data=f"sub|6|{int(6 * cost * (1 - discount6))}|{user_id}")],
+            #     [InlineKeyboardButton(text="12 месяцев",
+            #                           callback_data=f"sub|12|{int(12 * cost * (1 - discount12))}|{user_id}")]
+            # ]
             btn = [
-                [InlineKeyboardButton(text="1 месяц", callback_data=f"sub|1|{cost}|{user_id}")],
-                [InlineKeyboardButton(text="3 месяца", callback_data=f"sub|3|{int(3 * cost * (1 - discount3))}|{user_id}")],
-                [InlineKeyboardButton(text="6 месяцев", callback_data=f"sub|6|{int(6 * cost * (1 - discount6))}|{user_id}")],
-                [InlineKeyboardButton(text="12 месяцев", callback_data=f"sub|12|{int(12 * cost * (1 - discount12))}|{user_id}")]
+                [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
+                    url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}"))],
+                [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
+                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}"))],
+                [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
+                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}"))],
+                [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
+                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}"))],
             ]
             btn = InlineKeyboardMarkup(inline_keyboard=btn)
             await message.answer(
                 text=f"Выберите длительность подписки 👇\n\n1 месяц - {cost} ₽\n3 месяца - {int(3 * cost * (1 - discount3))} ₽ (Скидка {int(discount3 * 100)}%)\n6 месяцев - {int(6 * cost * (1 - discount6))} ₽ (Скидка {int(discount6 * 100)}%)\n12 месяцев - {int(12 * cost * (1 - discount12))} ₽ (Скидка {int(discount12 * 100)}%)",
                 reply_markup=btn
             )
-    elif promo.lower() == "неделя":
-        btn = [
-            [KeyboardButton(text="Меню ☰")],
-            [KeyboardButton(text="Избранные контакты 🤝")],
-        ]
-        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer(text="Вы активировали промокод на бесплатную подписку на неделю!", reply_markup=btn)
-        await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=7))
-        await db.smm.add_payment(message.chat.id, datetime.utcnow(), datetime.utcnow() + timedelta(days=7), 0)
-        scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=7)), args=[message.chat.id])
-    elif promo.lower() == "месяц":
-        btn = [
-            [KeyboardButton(text="Меню ☰")],
-            [KeyboardButton(text="Избранные контакты 🤝")],
-        ]
-        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer(text="Вы активировали промокод на бесплатную подписку на месяц!", reply_markup=btn)
-        await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=30))
-        await db.smm.add_payment(message.chat.id, datetime.utcnow(), datetime.utcnow() + timedelta(days=30), 0)
-        scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=30)), args=[message.chat.id])
+    else:
+        promos = await db.smm.get_all_promos()
+        promo_usage = promos[promo][0]
+        promo_users = promos[promo][1].split(",")
+        promo_duration = promos[promo][2]
+        promo_text = promos[promo][3]
+        users_promos = (await db.smm.get_users_promos(user_id))[0][0].split(",")
+        if promo in promos.keys():
+            if (promo_usage > 0 or promo_usage == -100000) and promo not in users_promos and (
+                    str(user_id) in promo_users or promo_users[0] == '-'):
+                btn = [
+                    [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+                    [KeyboardButton(text="Избранные контакты 🤝")],
+                ]
+                if message.chat.id in config.tg_bot.admins:
+                    btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
+                btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+                await message.answer(text=f"{promo_text}", reply_markup=btn)
+                await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=promo_duration))
+                await db.smm.add_payment(message.chat.id, datetime.utcnow(),
+                                         datetime.utcnow() + timedelta(days=promo_duration), 0)
+                scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=promo_duration)),
+                                  args=[message.chat.id])
+                await db.smm.use_promo(promo, user_id)
+            elif promo_usage <= 0:
+                await message.answer(
+                    text="Спасибо за интерес, но этот промокод больше не действует.\nСледите за нашими новыми акциями!")
+
+                await extend_sub(message, state)
+            elif str(user_id) not in promo_users and promo_users[0] != '-':
+                await message.answer(text="Этот промокод не принадлежит вам.\nСледите за нашими новыми акциями!")
+                await extend_sub(message, state)
+            else:
+                await message.answer(text="Вы уже использовали этот промокод.\nСледите за нашими новыми акциями!")
+                await extend_sub(message, state)
+        else:
+            await message.answer(text="К сожалению, такого промокода не существует.\nСледите за нашими новыми акциями!")
 
     state_data = await state.get_data()
     await state.clear()

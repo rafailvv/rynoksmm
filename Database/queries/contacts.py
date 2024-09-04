@@ -41,3 +41,18 @@ class ContactsQueries(BaseDatabase):
             )
             return result.fetchone()
 
+    async def is_contact(self, user_id, smm_id):
+        async with self.db() as session:
+            result = await session.execute(
+                select(1).where(and_(Contacts.user_id == user_id, Contacts.smm_id == smm_id))
+            )
+            return result.scalar() is not None
+
+    async def remove_contact(self, user_id, smm_id):
+        async with self.db() as session:
+            result = await session.execute(
+                delete(Contacts).where(and_(Contacts.user_id == user_id, Contacts.smm_id == smm_id))
+            )
+            await session.commit()
+            return result.rowcount == 1
+
