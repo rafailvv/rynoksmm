@@ -366,7 +366,7 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
             btns = InlineKeyboardMarkup(inline_keyboard=btns)
             await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
         else:
-            cost = 1
+            cost = 1000
             discount3 = 0.1
             discount6 = 0.25
             discount12 = 0.4
@@ -400,7 +400,11 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         promo_users = promos[promo][1].split(",")
         promo_duration = promos[promo][2]
         promo_text = promos[promo][3]
-        users_promos = (await db.smm.get_users_promos(user_id))[0][0].split(",")
+        users_promos = (await db.smm.get_users_promos(user_id))[0][0]
+        if users_promos is not None:
+            users_promos = users_promos.split(",")
+        else:
+            users_promos = []
         if promo in promos.keys():
             if (promo_usage > 0 or promo_usage == -100000) and promo not in users_promos and (
                     str(user_id) in promo_users or promo_users[0] == '-'):
