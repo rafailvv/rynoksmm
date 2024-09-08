@@ -153,12 +153,13 @@ async def ta_choose(message: Message, t=None, fl=True):
         await message.edit_reply_markup(reply_markup=btns)
 
 
-async def send_notification(user_id):
+async def send_notification(message: Message):
+    user_id = message.chat.id
     tas = await db.ta.get_ta_by_user_id(user_id)
     smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
         user_id)
     if None in [full_name, phone, age, town, cost, description, date_sub] or len(
-            tas) == 0 or f"{user_id}.jpg" not in os.listdir("profile/templates/images"):
+            tas) == 0 or f"{user_id}.jpg" not in os.listdir("API/profile/templates/images"):
         btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
                [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]

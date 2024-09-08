@@ -180,11 +180,11 @@ async def smm_menu(message: Message, state: FSMContext):
         await message.answer(
             f"У вас уже есть аккаунт SMM. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'.")
     else:
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)), args=[message.chat.id])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)), args=[message.chat.id])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)), args=[message.chat.id])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)), args=[message.chat.id])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)), args=[message.chat.id])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)), args=[message])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)), args=[message])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)), args=[message])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)), args=[message])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)), args=[message])
         await db.smm.add_smm(message.chat.id, datetime.utcnow())
         await message.answer(f"Заполните анкету.")
         await message.answer("Введите ваше имя и фамилию 👇")
@@ -360,40 +360,40 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
                              reply_markup=btn)
         return
     if promo == "-":
-        if fl and not await db.smm.is_used_free_sub(message.chat.id):
-            btns = [[InlineKeyboardButton(text="Активировать", callback_data=f"free_sub|use|{message.chat.id}")],
-                    [InlineKeyboardButton(text="Использовать потом", callback_data=f"free_sub|then")]]
-            btns = InlineKeyboardMarkup(inline_keyboard=btns)
-            await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
-        else:
-            cost = 1000
-            discount3 = 0.1
-            discount6 = 0.25
-            discount12 = 0.4
-            # btn = [
-            #     [InlineKeyboardButton(text="1 месяц", callback_data=f"sub|1|{cost}|{user_id}")],
-            #     [InlineKeyboardButton(text="3 месяца",
-            #                           callback_data=f"sub|3|{int(3 * cost * (1 - discount3))}|{user_id}")],
-            #     [InlineKeyboardButton(text="6 месяцев",
-            #                           callback_data=f"sub|6|{int(6 * cost * (1 - discount6))}|{user_id}")],
-            #     [InlineKeyboardButton(text="12 месяцев",
-            #                           callback_data=f"sub|12|{int(12 * cost * (1 - discount12))}|{user_id}")]
-            # ]
-            btn = [
-                [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
-                    url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}"))],
-                [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
-                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}"))],
-                [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
-                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}"))],
-                [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
-                    url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}"))],
-            ]
-            btn = InlineKeyboardMarkup(inline_keyboard=btn)
-            await message.answer(
-                text=f"Выберите длительность подписки 👇\n\n1 месяц - {cost} ₽\n3 месяца - {int(3 * cost * (1 - discount3))} ₽ (Скидка {int(discount3 * 100)}%)\n6 месяцев - {int(6 * cost * (1 - discount6))} ₽ (Скидка {int(discount6 * 100)}%)\n12 месяцев - {int(12 * cost * (1 - discount12))} ₽ (Скидка {int(discount12 * 100)}%)",
-                reply_markup=btn
-            )
+        # if fl and not await db.smm.is_used_free_sub(message.chat.id):
+        #     btns = [[InlineKeyboardButton(text="Активировать", callback_data=f"free_sub|use|{message.chat.id}")],
+        #             [InlineKeyboardButton(text="Использовать потом", callback_data=f"free_sub|then")]]
+        #     btns = InlineKeyboardMarkup(inline_keyboard=btns)
+        #     await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
+        # else:
+        cost = 1000
+        discount3 = 0.1
+        discount6 = 0.25
+        discount12 = 0.4
+        # btn = [
+        #     [InlineKeyboardButton(text="1 месяц", callback_data=f"sub|1|{cost}|{user_id}")],
+        #     [InlineKeyboardButton(text="3 месяца",
+        #                           callback_data=f"sub|3|{int(3 * cost * (1 - discount3))}|{user_id}")],
+        #     [InlineKeyboardButton(text="6 месяцев",
+        #                           callback_data=f"sub|6|{int(6 * cost * (1 - discount6))}|{user_id}")],
+        #     [InlineKeyboardButton(text="12 месяцев",
+        #                           callback_data=f"sub|12|{int(12 * cost * (1 - discount12))}|{user_id}")]
+        # ]
+        btn = [
+            [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}"))],
+            [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}"))],
+            [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}"))],
+            [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}"))],
+        ]
+        btn = InlineKeyboardMarkup(inline_keyboard=btn)
+        await message.answer(
+            text=f"Выберите длительность подписки 👇\n\n1 месяц - {cost} ₽\n3 месяца - {int(3 * cost * (1 - discount3))} ₽ (Скидка {int(discount3 * 100)}%)\n6 месяцев - {int(6 * cost * (1 - discount6))} ₽ (Скидка {int(discount6 * 100)}%)\n12 месяцев - {int(12 * cost * (1 - discount12))} ₽ (Скидка {int(discount12 * 100)}%)",
+            reply_markup=btn
+        )
     else:
         promos = await db.smm.get_all_promos()
         promo_usage = promos[promo][0]

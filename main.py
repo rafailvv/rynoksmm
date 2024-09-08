@@ -46,14 +46,15 @@ from PIL import Image, ImageDraw
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.redis import RedisJobStore
+from Bot.misc.scheduler import scheduler
 
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 from datetime import datetime, timedelta
 
-from Bot.misc.scheduler import scheduler
-
 from Bot.misc.bot import bot
+
+from Backup.backup import scheduler_
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -71,12 +72,23 @@ dp.include_routers(message_router, callback_router)
 
 async def main():
     logging.info("Starting bot")
+
     try:
-        await bot.delete_webhook(drop_pending_updates=True)
+
+        #await bot.delete_webhook(drop_pending_updates=True)
+
         scheduler.start()
-        await dp.start_polling(bot)
+        await scheduler_()
+        async with bot:
+            await dp.start_polling(bot)
     except Exception as e:
         logging.error(f"Error occurred: {e}")
+    finally:
+        # Shutdown the dispatcher to close resources
+        await dp.storage.close()
+        await dp.storage.wait_closed()
+        if config.redis.use_redis:
+            await redis.close()  # Close Redis connection if used
 
 
 if __name__ == "__main__":
