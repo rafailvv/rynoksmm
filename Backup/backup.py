@@ -3,7 +3,7 @@ import asyncio
 import time
 
 from aiogram import Bot, Dispatcher
-from datetime import datetime
+from datetime import datetime, timedelta
 import subprocess
 
 from dotenv import dotenv_values
@@ -14,6 +14,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.redis import RedisJobStore
 from Bot.misc.scheduler import scheduler
 
+from aiogram.types import FSInputFile
+
+from Bot.misc.bot import bot
 
 DB_NAME = config.db.database
 DB_USER = config.db.user
@@ -25,10 +28,9 @@ USER_ID = 5283298935
 
 async def send_backup(user_id, backup_path):
     attempt = 0
-    while True:
+    while attempt < 100:
         try:
-            with open(backup_path, 'rb') as backup_file:
-                await bot.send_document(user_id, backup_file, caption=datetime.now().strftime('%H:%M:%S %d.%m.%Y'))
+            await bot.send_document(user_id, document=FSInputFile(backup_path), caption=datetime.now().strftime('%H:%M:%S %d.%m.%Y'))
 
             os.remove(backup_path)
             break
@@ -36,7 +38,7 @@ async def send_backup(user_id, backup_path):
             attempt += 1
             print(f"Network error: {e}")
             print(f"Retry attempt {attempt}")
-            time.sleep(300)
+
 
 
 async def backup_database():
@@ -52,4 +54,4 @@ async def backup_database():
 async def scheduler_():
     backup_path = await backup_database()
     await send_backup(USER_ID, backup_path)
-    scheduler.add_job(scheduler_, trigger=DateTrigger(datetime.now + timedelta(seconds=900)))
+    scheduler.add_job(scheduler_, trigger=DateTrigger(datetime.now() + timedelta(seconds=900)))

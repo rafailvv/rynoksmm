@@ -55,6 +55,8 @@ from yookassa import Configuration, Payment
 import uuid
 from yookassa.domain.response import PaymentResponse
 
+from aiogram.exceptions import TelegramForbiddenError
+
 message_router = Router()
 
 
@@ -180,11 +182,11 @@ async def smm_menu(message: Message, state: FSMContext):
         await message.answer(
             f"У вас уже есть аккаунт SMM. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'.")
     else:
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)), args=[message])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)), args=[message])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)), args=[message])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)), args=[message])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)), args=[message])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)), args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)), args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)), args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)), args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)), args=[message.chat.id, message.chat.first_name])
         await db.smm.add_smm(message.chat.id, datetime.utcnow())
         await message.answer(f"Заполните анкету.")
         await message.answer("Введите ваше имя и фамилию 👇")
@@ -312,11 +314,11 @@ async def ans_sup(message: Message, state: FSMContext):
     await db.users.add_support_request(message.text, message.chat.id, message.from_user.url)
     state_data = await state.get_data()
     await state.clear()
-    await state.update(state_data)
+    await state.update_data(state_data)
+    message_text = f"Вам пришло уведомление!\n\nПользователь <a href='{message.from_user.url}'>{message.chat.first_name}</a> обратился в тех. поддержку"
     for admin in config.tg_bot.admins:
         await bot.send_message(chat_id=admin,
-                               text=f"Вам пришло уведомление!\n\nПользователь <a href={message.from_user.url}>{message.chat.first_name}</a> обратился в тех. поддержку",
-                               parse_mode="HTML")
+                               text=message_text)
 
 
 @message_router.message(F.text == "Просмотреть заявки 📩")
@@ -331,9 +333,12 @@ async def requests(message: Message, state: FSMContext):
 @message_router.message(st.support_reply)
 async def support_reply(message: Message, state: FSMContext):
     state_data = await state.get_data()
-    await bot.send_message(chat_id=state_data["user_id"],
-                           text=f"Вам пришло уведомление от Администратора!\n\n{message.text}")
-    await message.answer(text="Сообщение доставлено!")
+    try:
+        await bot.send_message(chat_id=state_data["user_id"],
+                               text=f"Вам пришло уведомление от Администратора!\n\n{message.text}")
+        await message.answer(text="Сообщение доставлено!")
+    except TelegramForbiddenError as e:
+        await message.answer(text="Ваш бот заблокирован пользователем")
     await db.users.answer_request(state_data["request"][state_data["i"]][0], state_data["request"][state_data["i"]][1])
     await requests(message, state)
 

@@ -240,7 +240,8 @@ class SmmQueries(BaseDatabase):
                     (datetime.utcnow() - timedelta(days=days_to)) >= Payments.start_time).where(
                     Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
             )
-            return result.scalar() // 100 or 0
+            rs = result.scalar()
+            return (0 if rs is None else rs) // 100 or 0
 
     async def use_promo(self, promo, user_id):
         async with self.db() as session:

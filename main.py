@@ -72,24 +72,15 @@ dp.include_routers(message_router, callback_router)
 
 async def main():
     logging.info("Starting bot")
-
     try:
-
-        #await bot.delete_webhook(drop_pending_updates=True)
-
+        await bot.delete_webhook(drop_pending_updates=True)
         scheduler.start()
-        await scheduler_()
-        async with bot:
-            await dp.start_polling(bot)
+        scheduler.add_job(scheduler_, trigger=DateTrigger(datetime.now() + timedelta(seconds=5)))
+        await dp.start_polling(bot)
     except Exception as e:
         logging.error(f"Error occurred: {e}")
-    finally:
-        # Shutdown the dispatcher to close resources
-        await dp.storage.close()
-        await dp.storage.wait_closed()
-        if config.redis.use_redis:
-            await redis.close()  # Close Redis connection if used
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+

@@ -153,8 +153,7 @@ async def ta_choose(message: Message, t=None, fl=True):
         await message.edit_reply_markup(reply_markup=btns)
 
 
-async def send_notification(message: Message):
-    user_id = message.chat.id
+async def send_notification(user_id, first_name):
     tas = await db.ta.get_ta_by_user_id(user_id)
     smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
         user_id)
@@ -167,7 +166,7 @@ async def send_notification(message: Message):
             btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await bot.send_message(chat_id=user_id,
-                               text=f"{message.chat.first_name}, у вас не заполнен профиль,\nвы можете дозаполнить, чтобы опубликовать его, нажав на кнопку 'Профиль'",
+                               text=f"{first_name}, у вас не заполнен профиль,\nвы можете дозаполнить, чтобы опубликовать его, нажав на кнопку 'Профиль'",
                                reply_markup=btn)
 
 

@@ -109,7 +109,7 @@ class Contacts(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
     user_id = Column(ForeignKey('users.id'), nullable=False)
-    smm_id = Column(ForeignKey('smm.id'), nullable=False)
+    smm_id = Column(ForeignKey('smm.user_id'), nullable=False)
 
     smm = relationship('Smm', back_populates='contacts')
     user = relationship('Users', back_populates='contacts')

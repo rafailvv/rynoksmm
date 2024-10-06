@@ -51,6 +51,8 @@ from Bot.misc.scheduler import scheduler
 
 from Bot.misc.bot import bot
 
+from aiogram.exceptions import TelegramForbiddenError
+
 callback_router = Router()
 
 
@@ -317,6 +319,7 @@ async def support(callback: CallbackQuery, state: FSMContext):
             await message.answer(text="Введите текст, который хотите отправить пользователю:")
             await state.update_data(user_id=data[2])
             await state.set_state(st.support_reply)
+
     elif data[1] == "next":
         await iterate_requests(message, state, state_data["request"], int(data[2]) + 1, fl=True)
     elif data[1] == "prev":

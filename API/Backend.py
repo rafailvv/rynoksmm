@@ -22,7 +22,32 @@ import uuid
 from Bot.config import config
 # endregion
 
-app = FastAPI()
+app = FastAPI(
+    title="Warehouse API",
+    description="API for managing warehouse processes",
+    version="1.0.0",
+    terms_of_service="http://example.com/terms/",
+    contact={
+        "name": "Support Team",
+        "url": "http://example.com/contact",
+        "email": "support@example.com",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT"
+    },
+    openapi_tags=[
+        {
+            "name": "products",
+            "description": "Operations with products"
+        },
+        {
+            "name": "orders",
+            "description": "Operations with orders"
+        }
+    ]
+)
+
 
 mainpage_router = APIRouter()
 
@@ -44,7 +69,7 @@ class User(BaseModel):
     description: str
 
 
-@mainpage_router.get("/")
+@mainpage_router.get("/", tags=["products"])
 async def main_page_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
@@ -108,7 +133,7 @@ async def main_page_info(request: Request, user_id: int):
 
 
 @mainpage_router.post("/profile")
-async def update(user: User):
+async def update(user: Us9er):
     await db.smm.updt_user(
         user_id=user.user_id, age=user.age, phone=user.phone, fullname=user.name, cost=user.cost, town=user.town, description=user.description
     )
@@ -218,5 +243,5 @@ async def get_confirmation_token(payment_request: PaymentRequest):
 
 app.include_router(mainpage_router)
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
-    # uvicorn.run(app, host="127.0.0.1", port=80)
+    # uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
+    uvicorn.run(app, host="127.0.0.1", port=80)
