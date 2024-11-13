@@ -1,7 +1,7 @@
 [Service]
 User=root
 WorkingDirectory=/home/rynoksmm/API
-ExecStart=/usr/bin/python3 Backend.py
+ExecStart=/home/rynoksmm/venv/bin/python3 Backend.py
 Restart=always
 
 [Install]

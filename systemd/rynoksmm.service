@@ -1,7 +1,8 @@
 [Service]
 User=root
 WorkingDirectory=/home/rynoksmm
-ExecStart=/usr/bin/python3 main.py
+
+ExecStart=/home/rynoksmm/venv/bin/python3 main.py
 Restart=always
 
 [Install]
