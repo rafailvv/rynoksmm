@@ -1,6 +1,6 @@
 [Service]
 User=root
-WorkingDirectory=/home/rynoksmm_rebuild/API
+WorkingDirectory=/home/rynoksmm/API
 ExecStart=/usr/bin/python3 Backend.py
 Restart=always
 
