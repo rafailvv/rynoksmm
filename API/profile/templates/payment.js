@@ -28,6 +28,7 @@ async function createPayment() {
     const urlParams = new URLSearchParams(window.location.search);
     const price = urlParams.get('price');
     const days = urlParams.get('days');
+    const req = urlParams.get('req');
 
     if (!price || !days || !email) {
         console.error('Missing parameters: price, days, hours, or email.');
@@ -44,7 +45,8 @@ async function createPayment() {
                 client_id: clientID,
                 price: price,
                 days: days,
-                email: email
+                email: email,
+                req: req
             })
         });
 

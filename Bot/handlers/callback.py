@@ -49,9 +49,12 @@ from datetime import datetime, timedelta
 
 from Bot.misc.scheduler import scheduler
 
-from Bot.misc.bot import bot
+from Bot.misc.bot import *
 
 from aiogram.exceptions import TelegramForbiddenError
+
+from openai import OpenAI
+
 
 callback_router = Router()
 
@@ -69,6 +72,18 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         await state.clear()
         await state.update_data(ta=[])
         await search_by_field(callback.message, state, smm=False)
+    elif data[1] == "ai":
+        if "user_requests_limit" not in state_data:
+            state_data["user_requests_limit"] = 10
+        if "user_requests_count" not in state_data:
+            state_data["user_requests_count"] = 0
+        thread = client.beta.threads.create()
+        await state.update_data(thread_id=thread.id)
+        await state.set_state(st.thread_state)
+        btns = [[KeyboardButton(text="Выйти из НейроSMM ❌")]]
+        btns = ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)
+        await message.answer(f"Добро пожаловать в НейроСММ, он поможет вам в написании контента, создании картинок и упаковке профиля.\nУ вас осталось {state_data['user_requests_limit'] - state_data['user_requests_count']} запросов", reply_markup=btns)
+
     await callback.answer()
 
 

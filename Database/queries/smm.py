@@ -208,7 +208,7 @@ class SmmQueries(BaseDatabase):
             )
             await session.commit()
 
-    async def add_payment(self, user_id, start_time, finish_time, cost, payment_id=None):
+    async def add_payment(self, user_id, start_time=None, finish_time=None, cost=0, payment_id=None):
         async with self.db() as session:
             new_payment = Payments(user_id=user_id, start_time=start_time, finish_time=finish_time, cost=cost, payment_id=payment_id)
             session.add(new_payment)
@@ -241,7 +241,7 @@ class SmmQueries(BaseDatabase):
                     Payments.start_time >= (datetime.utcnow() - timedelta(days=days_from)))
             )
             rs = result.scalar()
-            return (0 if rs is None else rs) // 100 or 0
+            return 0 if rs is None else rs
 
     async def use_promo(self, promo, user_id):
         async with self.db() as session:

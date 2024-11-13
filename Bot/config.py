@@ -31,6 +31,9 @@ class Yookassa:
     shop_id: int
     secret_key: str
 
+@dataclass
+class GPTConfig:
+    api_key: str
 
 @dataclass
 class Config:
@@ -38,6 +41,7 @@ class Config:
     db: DbConfig
     redis: RedisConfig
     yookassa: Yookassa
+    gpt: GPTConfig
 
 
 def load_config(path: str = None):
@@ -59,7 +63,8 @@ def load_config(path: str = None):
         yookassa=Yookassa(
             shop_id=env.int("YOOKASSA_SHOP_ID"),
             secret_key=env.str("YOOKASSA_SECRET_KEY")
-        )
+        ),
+        gpt=GPTConfig(api_key=env.str("GPT_API_KEY"))
     )
 
 

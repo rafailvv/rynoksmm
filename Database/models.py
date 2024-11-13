@@ -27,7 +27,6 @@ class Support(Base):
     tg_url = Column(Text)
 
 
-
 class TargetAudience(Base):
     __tablename__ = 'target_audience'
 
@@ -35,6 +34,7 @@ class TargetAudience(Base):
     name = Column(Text, nullable=False)
     category = Column(Text)
 
+    subscribe_notifications = relationship('SubscribeNotifications', back_populates='target_audience')
     target_audience_smm = relationship('TargetAudienceSmm', back_populates='target_audience')
 
 
@@ -83,6 +83,18 @@ class Smm(Base):
     contacts = relationship('Contacts', back_populates='smm')
 
 
+class SubscribeNotifications(Base):
+    __tablename__ = 'subscribe_notifications'
+
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    ta = Column(ForeignKey('target_audience.id'))
+    town = Column(Text)
+    cost = Column(Integer)
+    user_id = Column(BigInteger)
+
+    target_audience = relationship('TargetAudience', back_populates='subscribe_notifications')
+
+
 class TargetAudienceSmm(Base):
     __tablename__ = 'target_audience_smm'
 
@@ -109,7 +121,7 @@ class Contacts(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
     user_id = Column(ForeignKey('users.id'), nullable=False)
-    smm_id = Column(ForeignKey('smm.user_id'), nullable=False)
+    smm_id = Column(ForeignKey('smm.user_id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     smm = relationship('Smm', back_populates='contacts')
     user = relationship('Users', back_populates='contacts')

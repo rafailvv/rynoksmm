@@ -13,3 +13,4 @@ class SmmStatesGroup(StatesGroup):
     support = State()
     support_reply = State()
     clear = State()
+    thread_state = State()

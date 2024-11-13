@@ -93,7 +93,7 @@
     function redirectToTraining() {
         const payment_id = getParameterByName('payment_id');
         if (payment_id) {
-            window.Telegram.WebApp.openTelegramLink(`https://t.me/rynoksmm_bot?start=pay_post_${payment_id}`);
+            window.Telegram.WebApp.openTelegramLink(`https://t.me/rynoksmm_bot?start=pay_${payment_id}`);
             window.Telegram.WebApp.close();
         } else {
             alert("Параметр payment_id не найден в URL");

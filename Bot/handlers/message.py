@@ -49,7 +49,7 @@ from aiogram.fsm.storage.redis import RedisStorage, Redis
 from datetime import datetime, timedelta
 
 from Bot.misc.scheduler import scheduler
-from Bot.misc.bot import bot
+from Bot.misc.bot import *
 
 from yookassa import Configuration, Payment
 import uuid
@@ -57,11 +57,14 @@ from yookassa.domain.response import PaymentResponse
 
 from aiogram.exceptions import TelegramForbiddenError
 
+from openai import OpenAI
+
 message_router = Router()
 
 
-async def got_payment(message: Message, payment_response: PaymentResponse, payment_type, payment_id):
-    if payment_type == "post":
+async def got_payment(message: Message, payment_response: PaymentResponse, payment_type, payment_id, state: FSMContext):
+    state_data = await state.get_data()
+    if payment_type == "subscription":
         btn = [
             [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
             [KeyboardButton(text="Избранные контакты 🤝")],
@@ -72,9 +75,26 @@ async def got_payment(message: Message, payment_response: PaymentResponse, payme
         await message.answer(text="Оплата прошла успешно!\nТеперь ваш профиль виден другим пользователям",
                              reply_markup=btn)
 
-        scheduler.add_job(sub_end, DateTrigger(datetime.now() + timedelta(days=int(payment_response.metadata.get('days')))),
+        scheduler.add_job(sub_end,
+                          DateTrigger(datetime.now() + timedelta(days=int(payment_response.metadata.get('days')))),
                           args=[message.chat.id])
-        await db.smm.add_date_sub(message.chat.id, datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))))
+        await db.smm.add_date_sub(message.chat.id,
+                                  datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))))
+        await db.smm.add_payment(message.chat.id, datetime.utcnow(),
+                                 datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))),
+                                 int(payment_response.amount.value), payment_id)
+    elif payment_type == "requests":
+        btn = [
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+            [KeyboardButton(text="Избранные контакты 🤝")],
+        ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
+        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+        limit = state_data["user_requests_limit"] + int(payment_response.metadata["days"])
+        await state.update_data(user_requests_limit=limit)
+        await message.answer(text=f"Оплата прошла успешно!\nУ вас осталось {limit - state_data['user_requests_count']} запросов",
+                             reply_markup=btn)
         await db.smm.add_payment(message.chat.id, datetime.utcnow(),
                                  datetime.utcnow() + timedelta(days=int(payment_response.metadata.get('days'))),
                                  int(payment_response.amount.value), payment_id)
@@ -114,7 +134,7 @@ async def start(message: Message):
         [
             InlineKeyboardButton(text="Я SMM", callback_data="menu|smm"),
             InlineKeyboardButton(text="Я ищу SMM", callback_data="menu|looking_smm"),
-        ]
+        ], [InlineKeyboardButton(text="НейроSMM 🤖", callback_data="menu|ai")]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
     btn = [
@@ -148,7 +168,7 @@ async def deep_link_start(message: Message, state: FSMContext):
         await state.update_data(ta=[])
         await search_by_field(message, state)
     elif data.startswith("pay"):
-        _, payment_type, payment_id = data.split("_")
+        _, payment_id = data.split("_")
         Configuration.account_id = config.yookassa.shop_id
         Configuration.secret_key = config.yookassa.secret_key
         payment_response = Payment.find_one(payment_id)
@@ -156,9 +176,59 @@ async def deep_link_start(message: Message, state: FSMContext):
         if payment_response.status != "succeeded":
             await message.answer("Во время оплаты произошла ошибка, обратитесь  тех. поддержку")
             return
+        payment_type = payment_response.metadata["type"]
         if purchase_with_payment_id is None and message.chat.id == int(payment_response.metadata.get("client_id")):
             await got_payment(message, payment_response, payment_type, payment_id)
             return
+
+
+@message_router.message(st.thread_state)
+async def ai_smm(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    query = message.text
+    if query == "Выйти из НейроSMM ❌":
+        await state.clear()
+        await state.update_data(state_data)
+        btn = [
+            [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+            [KeyboardButton(text="Избранные контакты 🤝")],
+        ]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
+        if await db.smm.is_smm(message.chat.id) and await db.smm.get_date_sub(message.chat.id) < datetime.utcnow():
+            btn.append([KeyboardButton(text="Оформить подписку 🎟")])
+        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+        await message.answer("Вы вышли из НейроSMM", reply_markup=btn)
+        return
+    if state_data["user_requests_limit"] < state_data[
+        "user_requests_count"] and message.chat.id not in config.tg_bot.admins:
+        btn = [
+            [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price=990&days=50&req=requests"))],
+            [InlineKeyboardButton(text="100 Запросов", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price=1490&days=100&req=requests"))],
+            [InlineKeyboardButton(text="500 Запросов", web_app=WebAppInfo(
+                url=f"https://rynoksmm.ru/templates/payment.html?price=5990&days=500&req=requests"))]
+        ]
+        btn = InlineKeyboardMarkup(inline_keyboard=btn)
+        await message.answer(
+            text="Выберите количество запросов 👇\n\n50 Запросов - 990 ₽\n100 Запросов - 1490 ₽ \n500 Запросов - 5990 ₽")
+        return
+    await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
+    message_wait = await message.answer("Подождите, запрос обрабатывается...")
+    thread_id = state_data["thread_id"]
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=state_data["thread_id"],
+        assistant_id=assistant.id,
+        instructions=query
+    )
+    if run.status == 'completed':
+        messages = client.beta.threads.messages.list(
+            thread_id=thread_id
+        )
+        await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
+    else:
+        await message_wait.answer(run.status)
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
@@ -182,11 +252,16 @@ async def smm_menu(message: Message, state: FSMContext):
         await message.answer(
             f"У вас уже есть аккаунт SMM. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'.")
     else:
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)), args=[message.chat.id, message.chat.first_name])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)), args=[message.chat.id, message.chat.first_name])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)), args=[message.chat.id, message.chat.first_name])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)), args=[message.chat.id, message.chat.first_name])
-        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)), args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)),
+                          args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=3)),
+                          args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=7)),
+                          args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=14)),
+                          args=[message.chat.id, message.chat.first_name])
+        scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)),
+                          args=[message.chat.id, message.chat.first_name])
         await db.smm.add_smm(message.chat.id, datetime.utcnow())
         await message.answer(f"Заполните анкету.")
         await message.answer("Введите ваше имя и фамилию 👇")
@@ -386,13 +461,13 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         # ]
         btn = [
             [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}"))],
+                url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}&req=subscription"))],
             [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}"))],
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}&req=subscription"))],
             [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}"))],
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}&req=subscription"))],
             [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}"))],
+                url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}&req=subscription"))],
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(
@@ -478,9 +553,10 @@ async def messages(message: Message, state: FSMContext):
     if "town" in state_data and state_data["town"]:
         dict_of_smm = state_data["town_d"]
         await state.clear()
-        if message.text == "-":
-            pass
-        else:
+        await state.update_data(state_data)
+        await state.update_data(town_search=message.text.lower())
+        await state.update_data(town=False)
+        if message.text != "-":
             i = 0
             for k, v in dict_of_smm:
                 if v[2].lower() != message.text.lower():
@@ -489,13 +565,16 @@ async def messages(message: Message, state: FSMContext):
         await search_by_cost(message, state, dict_of_smm)
     elif "cost" in state_data and state_data["cost"]:
         dict_of_smm = state_data["cost_d"]
-        await state.clear()
         if message.text.isdigit():
             i = 0
             for k, v in dict_of_smm:
                 if v[4] < int(message.text):
                     del dict_of_smm[i]
                 i += 1
+            await state.clear()
+            await state.update_data(state_data)
+            await state.update_data(cost_search=int(message.text))
+            await state.update_data(cost=False)
             await list_of_smm(message, dict_of_smm, 0, state)
         else:
             await message.answer(text="Введите число")

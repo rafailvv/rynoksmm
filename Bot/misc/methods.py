@@ -42,8 +42,11 @@ from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 from datetime import datetime, timedelta
 
-from Bot.misc.bot import bot
+from Bot.misc.bot import *
 from Bot.config import config
+
+from Bot.buttons import *
+from openai import OpenAI
 
 
 async def pay_for_publication(user_id, duration, price):
@@ -233,8 +236,12 @@ async def search_by_cost(message: Message, state: FSMContext, dict_of_smm):
 
 
 async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=False):
+    state_data = await state.get_data()
     n = len(dict_of_smm)
     if n == 0:
+        id = str(uuid.uuid4())
+        state_data[id] = [state_data["ta"], state_data["town_search"], state_data["cost_search"]]
+        await state.update_data(state_data)
         await message.answer(text="🥲 К сожалению, не найдено ни одного специалиста")
     else:
         smm = dict_of_smm[i]

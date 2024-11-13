@@ -199,6 +199,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     price = payment_request.price
     days = payment_request.days
     email = payment_request.email
+    req = payment_request.req
 
     # Преобразование цены
     price = str(max(0, int(price * 100)) / 100)
@@ -221,7 +222,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
                         "currency": "RUB"
                     },
                     "quantity": 1,
-                    "description": f"Подписка {days}",
+                    "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
                     "vat_code": 1,
                     "payment_subject": "service",
                     "payment_mode": "full_prepayment"
@@ -233,8 +234,8 @@ async def get_confirmation_token(payment_request: PaymentRequest):
         },
         "capture": True,
         "test": True,
-        "description": f"Подписка {days}",
-        "metadata": {"client_id": client_id, "type": "subscription", "days": days}
+        "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
+        "metadata": {"client_id": client_id, "type": req, "days": days}
     }, idempotence_key)
 
     # Получение и возврат токена подтверждения
