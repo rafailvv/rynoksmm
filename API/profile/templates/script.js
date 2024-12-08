@@ -346,6 +346,7 @@ document.getElementById('saveCategoriesBtn').addEventListener('click', function(
 
 window.addEventListener("DOMContentLoaded", function (){
     user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
+    window.Telegram.WebApp.requestFullscreen()
 //    user_id = 5283298935;
     const loadingOverlay = document.getElementById("loading");
     console.log(user_id);
