@@ -133,7 +133,7 @@ async def main_page_info(request: Request, user_id: int):
 
 
 @mainpage_router.post("/profile")
-async def update(user: Us9er):
+async def update(user: User):
     await db.smm.updt_user(
         user_id=user.user_id, age=user.age, phone=user.phone, fullname=user.name, cost=user.cost, town=user.town, description=user.description
     )
