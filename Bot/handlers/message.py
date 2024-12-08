@@ -200,11 +200,10 @@ async def ai_smm(message: Message, state: FSMContext):
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await message.answer("Вы вышли из НейроSMM", reply_markup=btn)
         return
-    if state_data["user_requests_limit"] < state_data[
-        "user_requests_count"] and message.chat.id not in config.tg_bot.admins:
+    if state_data["user_requests_limit"] < state_data["user_requests_count"] and message.chat.id not in config.tg_bot.admins:
         btn = [
             [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price=990&days=50&req=requests"))],
+                url=f"httaps://rynoksmm.ru/templates/payment.html?price=990&days=50&req=requests"))],
             [InlineKeyboardButton(text="100 Запросов", web_app=WebAppInfo(
                 url=f"https://rynoksmm.ru/templates/payment.html?price=1490&days=100&req=requests"))],
             [InlineKeyboardButton(text="500 Запросов", web_app=WebAppInfo(
@@ -212,7 +211,7 @@ async def ai_smm(message: Message, state: FSMContext):
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(
-            text="Выберите количество запросов 👇\n\n50 Запросов - 990 ₽\n100 Запросов - 1490 ₽ \n500 Запросов - 5990 ₽")
+            text="Выберите количество запросов 👇\n\n50 Запросов - 990 ₽\n100 Запросов - 1490 ₽ \n500 Запросов - 5990 ₽", reply_markup=btn)
         return
     await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
@@ -223,10 +222,15 @@ async def ai_smm(message: Message, state: FSMContext):
         instructions=query
     )
     if run.status == 'completed':
+        import re
+
+        def escape_markdown_v2(text):
+            return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+
         messages = client.beta.threads.messages.list(
             thread_id=thread_id
         )
-        await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
+        await message_wait.edit_text(escape_markdown_v2(run.data.text[0].content[0].text.value), parse_mode="MarkdownV2")
     else:
         await message_wait.answer(run.status)
 
