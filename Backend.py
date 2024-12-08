@@ -244,5 +244,5 @@ async def get_confirmation_token(payment_request: PaymentRequest):
 
 app.include_router(mainpage_router)
 if __name__ == "__main__":
-    # uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
-    uvicorn.run(app, host="127.0.0.1", port=80)
+    uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="/etc/letsencrypt/live/rynoksmm.ru/privkey.pem", ssl_certfile="/etc/letsencrypt/live/rynoksmm.ru/fullchain.pem")
+    # uvicorn.run(app, host="127.0.0.1", port=80)
