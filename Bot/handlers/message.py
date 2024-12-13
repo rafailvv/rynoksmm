@@ -230,7 +230,7 @@ async def ai_smm(message: Message, state: FSMContext):
         messages = client.beta.threads.messages.list(
             thread_id=thread_id
         )
-        await message_wait.edit_text(escape_markdown_v2(run.data.text[0].content[0].text.value), parse_mode="MarkdownV2")
+        await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
     else:
         await message_wait.answer(run.status)
 
