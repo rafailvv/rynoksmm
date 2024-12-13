@@ -213,7 +213,7 @@ async def ai_smm(message: Message, state: FSMContext):
         await message.answer(
             text="Выберите количество запросов 👇\n\n50 Запросов - 990 ₽\n100 Запросов - 1490 ₽ \n500 Запросов - 5990 ₽", reply_markup=btn)
         return
-    await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
+
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
     thread_id = state_data["thread_id"]
     run = client.beta.threads.runs.create_and_poll(
@@ -230,7 +230,9 @@ async def ai_smm(message: Message, state: FSMContext):
         messages = client.beta.threads.messages.list(
             thread_id=thread_id
         )
+        await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
         await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
+        await message_wait.answer(f"У вас осталось {await state.get_data()['user_requests_count'] - state_data['user_requests_limit']} запросов")
     else:
         await message_wait.answer(run.status)
 
