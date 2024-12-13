@@ -232,7 +232,7 @@ async def ai_smm(message: Message, state: FSMContext):
         )
         await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
         await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
-        await message_wait.answer(f"У вас осталось {await state.get_data()['user_requests_count'] - state_data['user_requests_limit']} запросов")
+        await message.answer(f"У вас осталось {await state.get_data()['user_requests_count'] - state_data['user_requests_limit']} запросов")
     else:
         await message_wait.answer(run.status)
 
