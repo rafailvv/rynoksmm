@@ -203,7 +203,7 @@ async def ai_smm(message: Message, state: FSMContext):
     if state_data["user_requests_limit"] < state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
         btn = [
             [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price=990&days=50&req=requests"))],
+                url=f"https://rynoksmm.ru/templates/payment.html?price=1&days=50&req=requests"))],
             [InlineKeyboardButton(text="100 Запросов", web_app=WebAppInfo(
                 url=f"https://rynoksmm.ru/templates/payment.html?price=1490&days=100&req=requests"))],
             [InlineKeyboardButton(text="500 Запросов", web_app=WebAppInfo(
