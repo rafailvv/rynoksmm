@@ -333,7 +333,7 @@ async def iterate_requests(message: Message, state: FSMContext, requests, i=0, f
         request = requests[i][0]
         user_id = requests[i][1]
         tg_url = requests[i][2]
-        await state.update_data(request=requests, user_id=user_id, i=i)
+        await state.update_data(request=request, user_id=user_id, i=i)
         if fl:
             await message.edit_text(text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>", parse_mode="HTML",
                                     reply_markup=btns)
