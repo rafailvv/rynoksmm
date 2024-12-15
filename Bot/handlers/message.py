@@ -548,7 +548,7 @@ async def search_by_field(message: Message, state: FSMContext, smm=False, edit=F
         f.append(f"[{cnt}/{len(ta)}] {field[i][0]}")
     btns = []
     for i in range(len(f)):
-        btns.append([InlineKeyboardButton(text=f"{f[i]}", callback_data=f"field|{(f[i].split())[1]}|{smm}")])
+        btns.append([InlineKeyboardButton(text=f"{f[i]}", callback_data=f"field|{(f[i].split('] '))[1]}|{smm}")])
     btns = InlineKeyboardMarkup(inline_keyboard=btns)
     if edit:
         await message.edit_text(text="Выберите вашу сферу деятельности👇", reply_markup=btns)
