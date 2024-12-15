@@ -534,10 +534,18 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
 
 @message_router.message(Command("i_looking_smm"))
 async def search_by_field(message: Message, state: FSMContext, smm=False, edit=False, clear=True):
+    state_data = await state.get_data()
     f = []
     field = await db.ta.get_all_field()
+
     for i in range(len(field)):
-        f.append(field[i][0])
+        cnt = 0
+        ta = await db.ta.get_ta_by_field(field[i][0])
+        for j in range(len(ta)):
+            ta[j] = ta[j][0]
+            if 'ta' in state_data and ta[j] in state_data['ta']:
+                cnt += 1
+        f.append(f"[{cnt}/{len(ta)}] {field[i][0]}")
     btns = []
     for i in range(len(f)):
         btns.append([InlineKeyboardButton(text=f"{f[i]}", callback_data=f"field|{f[i]}|{smm}")])
