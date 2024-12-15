@@ -186,6 +186,7 @@ class PaymentRequest(BaseModel):
     price: int
     days: int
     email: str
+    req: str
 
 
 @mainpage_router.post("/payment/token")

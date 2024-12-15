@@ -492,7 +492,7 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         else:
             users_promos = []
         if promo in promos.keys():
-            if (promo_usage > 0 or promo_usage == -100000) and promo not in users_promos and (
+            if (promo_usage > 0 or promo_usage < -100000) and promo not in users_promos and (
                     str(user_id) in promo_users or promo_users[0] == '-'):
                 btn = [
                     [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
