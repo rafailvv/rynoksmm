@@ -200,7 +200,7 @@ async def ai_smm(message: Message, state: FSMContext):
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
         await message.answer("Вы вышли из НейроSMM", reply_markup=btn)
         return
-    if state_data["user_requests_limit"] < state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
+    if state_data["user_requests_limit"] <= state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
         btn = [
             [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
                 url=f"https://rynoksmm.ru/templates/payment.html?price=1&days=50&req=requests"))],
