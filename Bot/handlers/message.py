@@ -178,7 +178,7 @@ async def deep_link_start(message: Message, state: FSMContext):
             return
         payment_type = payment_response.metadata["type"]
         if purchase_with_payment_id is None and message.chat.id == int(payment_response.metadata.get("client_id")):
-            await got_payment(message, payment_response, payment_type, payment_id)
+            await got_payment(message, payment_response, payment_type, payment_id, state)
             return
 
 
