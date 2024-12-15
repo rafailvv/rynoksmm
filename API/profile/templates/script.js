@@ -145,7 +145,7 @@ function fillInitialFields() {
         document.getElementById('age').textContent = data.age;
         document.getElementById('city').textContent = data.town;
         document.getElementById('cost').textContent = data.cost;
-        document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+        document.getElementById('photo').src = `/API/profile/templates/images/${user_id}.jpg`;
         document.getElementById('description').textContent = data.description;
 
         // Шаг 1: Преобразование строки в объект Date
@@ -291,7 +291,7 @@ function handleFileChange(event) {
     .then(data => {
       console.log('Success:', data);
       // Обновляем изображение на странице
-      document.getElementById('photo').src = `/templates/images/${user_id}.jpg`; // предполагая, что сервер возвращает URL загруженного изображения
+      document.getElementById('photo').src = `/API/profile/templates/images/${user_id}.jpg`; // предполагая, что сервер возвращает URL загруженного изображения
       location.reload();
     })
     .catch(error => console.error('Error:', error));
@@ -357,7 +357,7 @@ window.addEventListener("DOMContentLoaded", function (){
 //    user_id = 5283298935;
     const loadingOverlay = document.getElementById("loading");
     console.log(user_id);
-    document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+    document.getElementById('photo').src = `/API/profile/templates/images/${user_id}.jpg`;
     fillInitialFields().then(() => {
         loadingOverlay.style.display = "none";
     }).catch(error => {
