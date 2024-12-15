@@ -513,14 +513,19 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
                     text="Спасибо за интерес, но этот промокод больше не действует.\nСледите за нашими новыми акциями!")
 
                 await extend_sub(message, state)
+                return
             elif str(user_id) not in promo_users and promo_users[0] != '-':
                 await message.answer(text="Этот промокод не принадлежит вам.\nСледите за нашими новыми акциями!")
                 await extend_sub(message, state)
+                return
             else:
                 await message.answer(text="Вы уже использовали этот промокод.\nСледите за нашими новыми акциями!")
                 await extend_sub(message, state)
+                return
         else:
             await message.answer(text="К сожалению, такого промокода не существует.\nСледите за нашими новыми акциями!")
+            await extend_sub(message, state)
+            return
 
     state_data = await state.get_data()
     await state.clear()
