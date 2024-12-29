@@ -1,0 +1,8 @@
+run:
+	docker run -it -d --env-file .env --restart=unless-stopped --name rynoksmm_web rynoksmm_web_image
+stop:
+	docker stop rynoksmm_web
+attach:
+	docker attach rynoksmm_web
+dell:
+	docker rm rynoksmm_web

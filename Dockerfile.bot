@@ -1,0 +1,15 @@
+FROM robd003/python3.10:latest
+
+WORKDIR /usr/src/app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --use-deprecated=legacy-resolver -r requirements.txt
+
+
+COPY . .
+
+COPY .env ./
+
+CMD ["/bin/bash", "-c", "python main.py"]
+
+
