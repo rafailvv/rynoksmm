@@ -30,7 +30,8 @@ async def send_backup(user_id, backup_path):
     attempt = 0
     while attempt < 100:
         try:
-            await bot.send_document(user_id, document=FSInputFile(backup_path), caption=datetime.now().strftime('%H:%M:%S %d.%m.%Y'))
+            await bot.send_document(user_id, document=FSInputFile(backup_path),
+                                    caption=datetime.now().strftime('%H:%M:%S %d.%m.%Y'))
 
             os.remove(backup_path)
             break
@@ -38,7 +39,6 @@ async def send_backup(user_id, backup_path):
             attempt += 1
             print(f"Network error: {e}")
             print(f"Retry attempt {attempt}")
-
 
 
 async def backup_database():

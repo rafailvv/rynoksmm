@@ -10,9 +10,9 @@ COPY . .
 
 COPY .env ./
 
-COPY /etc/letsencrypt/live/rynoksmm.ru/privkey.pem ./privkey.pem
+#COPY /etc/letsencrypt/live/rynoksmm.ru/privkey.pem ./privkey.pem
 
-COPY /etc/letsencrypt/live/rynoksmm.ru/fullchain.pem ./fullchain.pem
+#COPY /etc/letsencrypt/live/rynoksmm.ru/fullchain.pem ./fullchain.pem
 
 
 CMD ["/bin/bash", "-c", "python Backend.py"]
