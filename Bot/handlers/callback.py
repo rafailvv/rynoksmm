@@ -78,8 +78,6 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         if "user_requests_count" not in state_data:
             state_data["user_requests_count"] = 0
         await state.update_data(state_data)
-        thread = client.beta.threads.create()
-        await state.update_data(thread_id=thread.id)
         await state.set_state(st.thread_state)
         btns = [[KeyboardButton(text="Выйти из НейроSMM ❌")]]
         btns = ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)

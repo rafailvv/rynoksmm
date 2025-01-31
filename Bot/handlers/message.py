@@ -215,26 +215,27 @@ async def ai_smm(message: Message, state: FSMContext):
         return
 
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
-    thread_id = state_data["thread_id"]
-    run = client.beta.threads.runs.create_and_poll(
-        thread_id=state_data["thread_id"],
-        assistant_id=assistant.id,
-        instructions=query
+    chat_response = client.chat.complete_async(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": query,
+            },
+        ]
     )
-    if run.status == 'completed':
+    try:
         import re
 
         def escape_markdown_v2(text):
             return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
-        messages = client.beta.threads.messages.list(
-            thread_id=thread_id
-        )
+        messages = escape_markdown_v2(chat_response1.choices[0].message.content)
         await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
-        await message_wait.edit_text(messages.data[0].content[0].text.value, parse_mode="Markdown")
+        await message_wait.edit_text(messages, parse_mode="MarkdownV2")
         await message.answer(f"У вас осталось {state_data['user_requests_limit'] - (await state.get_data())['user_requests_count']} запросов")
-    else:
-        await message_wait.answer(run.status)
+    except Exception as e:
+        await message_wait.answer("Произошла ошибка, попробуйте еще раз")
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
