@@ -230,12 +230,12 @@ async def ai_smm(message: Message, state: FSMContext):
         def escape_markdown_v2(text):
             return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
-        messages = escape_markdown_v2(chat_response1.choices[0].message.content)
+        messages = escape_markdown_v2(chat_response.choices[0].message.content)
         await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
         await message_wait.edit_text(messages, parse_mode="MarkdownV2")
         await message.answer(f"У вас осталось {state_data['user_requests_limit'] - (await state.get_data())['user_requests_count']} запросов")
     except Exception as e:
-        await message_wait.answer(str(e))
+        await message_wait.answer("Произошла ошибка, попробуйте еще раз")
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
