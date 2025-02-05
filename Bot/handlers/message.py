@@ -235,7 +235,7 @@ async def ai_smm(message: Message, state: FSMContext):
         await message_wait.edit_text(messages, parse_mode="MarkdownV2")
         await message.answer(f"У вас осталось {state_data['user_requests_limit'] - (await state.get_data())['user_requests_count']} запросов")
     except Exception as e:
-        await message_wait.answer(e)
+        await message_wait.answer(str(e))
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
