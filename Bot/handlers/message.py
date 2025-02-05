@@ -216,7 +216,7 @@ async def ai_smm(message: Message, state: FSMContext):
 
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
     chat_response = client.chat.complete_async(
-        model=model,
+        model=config.mistral.model,
         messages=[
             {
                 "role": "user",
