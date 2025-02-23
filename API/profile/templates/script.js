@@ -196,13 +196,32 @@ function fillInitialFields() {
             // Создаем заголовок и его содержимое
             var heading = document.createElement('div');
             heading.classList.add('heading');
-            heading.textContent = '';
+
             if (k in data.ta) {
-                heading.textContent = '✅ ';
+                var checkbox = document.createElement('div');
+                checkbox.classList.add('checked', 'checkbox');
+
+                heading.appendChild(checkbox);
+                console.log(checkbox);
+                console.log(heading);
             }
-            heading.textContent += k + ' >';
-            heading.setAttribute("id", c);
-            heading.onclick = function() {
+            var label = document.createElement('label');
+            label.textContent = k;
+
+            var button = document.createElement('button');
+            button.classList.add('category-list-button');
+
+            var tick = document.createElement('i');
+            tick.classList.add("fa", "fa-chevron-right");
+            tick.setAttribute('id', 'toggle-category-list-button');
+
+            button.appendChild(tick);
+            button.setAttribute("id", c);
+
+            heading.appendChild(label);
+            heading.appendChild(button);
+
+            button.onclick = function() {
                 toggleContent(this);
             };
 
@@ -211,10 +230,12 @@ function fillInitialFields() {
             content.classList.add('content_ta');
 
             content.id = 'content' + c;
-            content.style = 'display: none; margin-top: 10px; margin-left: 30px; margin-right: 30px'
+            content.style = 'margin-top: 10px; margin-left: 30px; margin-right: 30px'
 
 
             for (var v of data.all_ta[k]) {
+                var line = document.createElement('div');
+                line.classList.add('line')
 
                 var label = document.createElement('label');
                 label.style = 'margin-right: 10px'
@@ -222,18 +243,20 @@ function fillInitialFields() {
                 label.setAttribute('name', 'checkbox' + i);
                 label.textContent = v;
 
-                var checkbox = document.createElement('input');
-                checkbox.setAttribute('type', 'checkbox');
+                var checkbox = document.createElement('div');
+                checkbox.setAttribute('onclick', 'toggleCheckbox(this)')
+                checkbox.setAttribute('class', 'checkbox');
                 checkbox.setAttribute('id', 'checkbox' + i);
                 checkbox.setAttribute('name', 'checkbox' + i);
 
-                content.appendChild(label);
+
 
                 if (k in data.ta && data.ta[k].some(keyword => v.includes(keyword))) {
-                    checkbox.checked = true;
+                    checkbox.classList.add('checked')
                 }
-                content.appendChild(checkbox);
-                content.appendChild(document.createElement('br'));
+                line.appendChild(checkbox);
+                line.appendChild(label);
+                content.appendChild(line);
                 i++;
             }
 
@@ -250,6 +273,32 @@ function fillInitialFields() {
 
 
 }
+
+
+function toggleContent(element) {
+    var content = document.getElementById('content' + element.id);
+    var icon = element.querySelector("i");
+
+    // Получаем реальную высоту контента
+    var contentHeight = content.scrollHeight; // Полная высота контента
+
+    if (content.classList.contains("active")) {
+        content.style.opacity = "0"; // Убираем видимость
+        content.style.maxHeight = "0"; // Сворачиваем
+        setTimeout(() => {
+            content.classList.remove("active");
+        }, 300); // Задержка перед удалением класса
+        icon.style.transform = "rotate(0deg)";
+    } else {
+        content.classList.add("active");
+        content.style.maxHeight = contentHeight + "px"; // Устанавливаем реальную высоту
+        setTimeout(() => {
+            content.style.opacity = "1"; // Плавно показываем
+        }, 10); // Небольшая задержка
+        icon.style.transform = "rotate(90deg)";
+    }
+}
+
 
 
 
@@ -300,26 +349,25 @@ function handleFileChange(event) {
 
 
 
-function toggleContent(element) {
-    var content = document.getElementById('content' + element.id);
 
-    if (content.style.display === "none") {
-        content.style.display = "block";
-        element.textContent = element.textContent.replace(">", "∨");
-    } else {
-        content.style.display = "none";
-        element.textContent = element.textContent.replace("∨", ">");
-    }
-}
 document.getElementById('saveCategoriesBtn').addEventListener('click', function() {
-  const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-  const selectedIds = Array.from(checkboxes).map(checkbox => checkbox.name);
-    console.log(selectedIds);
-   var selectedCategories = []
+  const checkboxes = document.querySelectorAll('.checkbox.checked');
+const selectedIds = Array.from(checkboxes).map(checkbox => {
+    const name = checkbox.getAttribute('name'); // Правильный способ получить атрибут
+    // Если атрибут name равен null, пропускаем этот элемент
+    if (name === null || name === undefined) {
+        return null; // Вернем null, если атрибут отсутствует
+    }
+    return name; // Возвращаем имя, если оно существует
+}).filter(id => id !== null); // Убираем элементы с null значениями
+
+console.log(selectedIds); // Выводим результат
+
+  var selectedCategories = []
   for (var chid of selectedIds) {
-//  console.log(`label[name="${chid}"]`)
-//  console.log(document.querySelector(`label[name="${chid}"]`));
-     selectedCategories.push(document.querySelector(`label[name="${chid}"]`).textContent);
+   //  console.log(`label[name="${chid}"]`)
+    //  console.log(document.querySelector(`label[name="${chid}"]`));
+   selectedCategories.push(document.querySelector(`label[name="${chid}"]`).textContent);
   }
    console.log(selectedCategories);
   const data = {
@@ -345,7 +393,12 @@ document.getElementById('saveCategoriesBtn').addEventListener('click', function(
 });
 
 window.addEventListener("DOMContentLoaded", function (){
-    user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
+    try {
+        user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
+    } catch {
+        user_id = 5283298935;
+    }
+
     function isDesktop() {
         const userAgent = navigator.userAgent.toLowerCase();
         return userAgent.includes("windows") || userAgent.includes("macintosh") || userAgent.includes("linux");
@@ -366,4 +419,6 @@ window.addEventListener("DOMContentLoaded", function (){
     });
 })
 
-
+function toggleCheckbox(element) {
+  element.classList.toggle("checked");
+}

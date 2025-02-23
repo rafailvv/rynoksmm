@@ -1,16 +1,49 @@
+.row {
+    align-items: center;
+}
+
+.heading {
+    display: flex;
+    cursor: pointer;
+    font-weight: bold;
+    align-items: center;
+}
+
+html, body {
+    overflow-x: hidden;
+}
+
+.line {
+    align-items: center;
+    margin-bottom: 10px;
+    display: flex;
+}
+
+#categories {
+    font-size:25px;
+}
+
+h3 {
+    font-size: 36px;
+}
+
 .profile-image {
-  width: 512px;
+    width: 350px;
+    margin-right: 15px;
+    object-fit: cover;
+    cursor: pointer;
+    margin-bottom: 15px;
 }
 
 /* Увеличиваем размер шрифта для текстового блока */
 .profile-details {
-  font-size: 25px;
+  font-size: 30px;
 }
 
 /* Стили для раскрывающегося блока */
-.container {
+/*.container {
     margin: 20px;
-}
+}*/
 .heading {
     cursor: pointer;
     font-weight: bold;
@@ -18,6 +51,7 @@
 
 label {
     margin-right: 10px;
+    margin-bottom: 0px !important;
 }
 
 .loading-overlay {
@@ -35,3 +69,86 @@ label {
 
 
 
+/* Checkbox */
+.checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  position: relative;
+  border-radius: 4px;
+  margin-right: 10px;
+
+}
+.checkbox.checked {
+  background-color: #4CAF50; /* Зеленый фон */
+  border-color: #4CAF50;
+}
+.checkbox::after {
+  content: "";
+  width: 12px;
+  height: 6px;
+  border: solid white;
+  border-width: 0 0px 2px 2px;
+  transform: rotate(-45deg); /* Исправление зеркальности галочки */
+  display: none;
+  position: absolute;
+}
+.checkbox.checked::after {
+  display: block;
+}
+
+
+.category-list-button {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffffff;
+    border-radius: 50%;
+    /*box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);*/
+    cursor: pointer;
+    color: black;
+    font-size: 20px;
+    transition: background-color 0.2s, transform 0.2s;
+    border: none;
+}
+
+
+.category-list-button:focus {
+    outline: none; /* Убираем обводку при фокусе */
+}
+
+
+/*.category-list-button:hover {
+    background-color: #0056b3;
+}*/
+
+.category-list-button:active {
+    transform: scale(0.95);
+}
+
+.content_ta {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out; /* Уменьшено время для max-height */
+}
+
+.content_ta.active {
+    opacity: 1;
+}
+
+.container {
+    margin-bottom: 5px;
+}
+
+
+.category-list-button i {
+    transition: transform 0.3s ease-in-out;
+}
