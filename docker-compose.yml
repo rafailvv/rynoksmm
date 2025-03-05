@@ -18,7 +18,7 @@ services:
       - redis
       - db
     volumes:
-      - /etc/letsencrypt/live/rynoksmm.ru:/etc/letsencrypt/live/rynoksmm.ru:ro
+      - /etc/letsencrypt/live/rynoksmm.ru:ro
 
   redis:
     image: "redis:latest"
