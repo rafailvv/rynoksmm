@@ -18,7 +18,8 @@ services:
       - redis
       - db
     volumes:
-      - /etc/letsencrypt/live/rynoksmm.ru:ro
+      - pg_data:/var/lib/postgresql/data
+
 
   redis:
     image: "redis:latest"
@@ -33,3 +34,6 @@ services:
       POSTGRES_DB: rynoksmm
     ports:
       - "5432:5432"
+volumes:
+
+  pg_data:
