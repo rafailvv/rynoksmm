@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from aiogram.dispatcher.storage import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from aiogram import Bot, Dispatcher
 
@@ -65,7 +66,8 @@ if config.redis.use_redis:
     storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
 else:
-    dp = Dispatcher()
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
 
 dp.include_routers(message_router, callback_router)
 
