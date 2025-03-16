@@ -8,6 +8,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.bot
+    environment:
+      - REDIS_HOST=redis
     depends_on:
       - redis
       - db
