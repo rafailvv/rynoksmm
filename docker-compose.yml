@@ -1,3 +1,7 @@
+version: '3.8'
+
+networks:
+  mynetwork:
 
 services:
   bot:
@@ -7,6 +11,8 @@ services:
     depends_on:
       - redis
       - db
+    networks:
+      - mynetwork
 
   web:
     build:
@@ -19,12 +25,15 @@ services:
       - db
     volumes:
       - pg_data:/var/lib/postgresql/data
-
+    networks:
+      - mynetwork
 
   redis:
     image: "redis:latest"
     ports:
       - "6379:6379"
+    networks:
+      - mynetwork
 
   db:
     image: "postgres:latest"
@@ -34,6 +43,8 @@ services:
       POSTGRES_DB: rynoksmm
     ports:
       - "5432:5432"
-volumes:
+    networks:
+      - mynetwork
 
+volumes:
   pg_data:
