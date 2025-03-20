@@ -27,3 +27,38 @@ class Promocodes(ModelView, model=Promocodes):
 
 class TargetAudience(ModelView, model=TargetAudience):
     column_list = [TargetAudience.id, TargetAudience.name, TargetAudience.category]
+
+
+class Support(ModelView, model=Support):
+    column_list = [Support.id, Support.request, Support.user_id, Support.answered, Support.tg_url]
+
+
+class Users(ModelView, model=Users):
+    column_list = [Users.id, Users.username]
+
+
+class Payments(ModelView, model=Payments):
+    column_list = [Payments.id, Payments.user_id, Payments.start_time, Payments.finish_time, Payments.cost,
+                   Payments.payment_id]
+
+
+class Smm(ModelView, model=Smm):
+    column_list = [Smm.id, Smm.user_id, Smm.full_name, Smm.phone, Smm.age, Smm.town, Smm.cost, Smm.photo, Smm.free_sub,
+                   Smm.description, Smm.date_sub, Smm.promos]
+
+
+class SubscribeNotifications(ModelView, model=SubscribeNotifications):
+    column_list = [SubscribeNotifications.id, SubscribeNotifications.ta, SubscribeNotifications.town,
+                   SubscribeNotifications.cost, SubscribeNotifications.user_id]
+
+
+class TargetAudienceSmm(ModelView, model=TargetAudienceSmm):
+    column_list = [TargetAudienceSmm.id, TargetAudienceSmm.smm_id, TargetAudienceSmm.target_audience_id]
+
+
+class Cases(ModelView, model=Cases):
+    column_list = [Cases.id, Cases.smm_id, Cases.name, Cases.link]
+
+
+class Contacts(ModelView, model=Contacts):
+    column_list = [Contacts.id, Contacts.user_id, Contacts.smm_id]

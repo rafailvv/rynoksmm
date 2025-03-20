@@ -254,6 +254,14 @@ engine = BaseDatabase(config).session_manager.engine
 admin = Admin(app, engine) #, dependencies=[Depends(admin_auth)]
 admin.add_view(Promocodes)
 admin.add_view(TargetAudience)
+admin.add_view(Support)
+admin.add_view(Users)
+admin.add_view(Payments)
+admin.add_view(Smm)
+admin.add_view(SubscribeNotifications)
+admin.add_view(TargetAudienceSmm)
+admin.add_view(Cases)
+admin.add_view(Contacts)
 
 if __name__ == "__main__":
     try:
