@@ -1,19 +1,31 @@
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext import asyncio as async_orm
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+Base = declarative_base()
+
+
+class SessionManager:
+    def __init__(self, database_url) -> None:
+        self.engine = create_async_engine(database_url, echo=False)
+        self.session_local = sessionmaker(
+            bind=self.engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+    def get_session(self):
+        return self.session_local
+
+    async def create_db(self):
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
 
 class BaseDatabase:
     def __init__(self, config):
         database_url = f"postgresql+asyncpg://{config.db.user}:{config.db.password}@{config.db.host}/{config.db.database}"
-        self.db = SessionManager(database_url).get_session()
 
+        self.session_manager = SessionManager(database_url)
+        self.db = self.session_manager.get_session()
 
-class SessionManager:
-    def __init__(self, database_url) -> None:
-        self.engine = async_orm.create_async_engine(database_url, echo=False)
-        self.session_local = sessionmaker(
-            self.engine, expire_on_commit=False, class_=async_orm.AsyncSession
-        )
-
-    def get_session(self) -> sessionmaker:
-        return self.session_local
+    async def init_db(self):
+        await self.session_manager.create_db()

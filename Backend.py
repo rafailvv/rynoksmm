@@ -20,6 +20,11 @@ from yookassa import Configuration, Payment
 import uuid
 
 from Bot.config import config
+
+from Database.admin import *
+from Database.session import BaseDatabase
+
+from sqladmin import Admin, ModelView
 # endregion
 
 app = FastAPI(
@@ -244,8 +249,14 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     return {"id": payment.id, "confirmation_token": confirmation_token}
 
 app.include_router(mainpage_router)
-if __name__ == "__main__":
 
-    uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="privkey.pem", ssl_certfile="fullchain.pem")
-    # except:
-    #     uvicorn.run(app, host="127.0.0.1", port=80)
+engine = BaseDatabase(config).session_manager.engine
+admin = Admin(app, engine) #, dependencies=[Depends(admin_auth)]
+admin.add_view(Promocodes)
+admin.add_view(TargetAudience)
+
+if __name__ == "__main__":
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="privkey.pem", ssl_certfile="fullchain.pem")
+    except:
+        uvicorn.run(app, host="127.0.0.1", port=80)

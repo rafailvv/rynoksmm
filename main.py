@@ -57,6 +57,8 @@ from Bot.misc.bot import bot
 
 from Backup.backup import scheduler_
 
+from Database.session import BaseDatabase
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -74,13 +76,15 @@ dp.include_routers(message_router, callback_router)
 
 async def main():
     logging.info("Starting bot")
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        scheduler.start()
-        scheduler.add_job(scheduler_, trigger=DateTrigger(datetime.now() + timedelta(seconds=5)))
-        await dp.start_polling(bot)
-    except Exception as e:
-        logging.error(f"Error occurred: {e}")
+    # try:
+    await BaseDatabase(config).init_db()
+    await db.ta.load_all_ta()
+    await bot.delete_webhook(drop_pending_updates=True)
+    scheduler.start()
+    scheduler.add_job(scheduler_, trigger=DateTrigger(datetime.now() + timedelta(seconds=5)))
+    await dp.start_polling(bot)
+    # except Exception as e:
+    #     logging.error(f"Error occurred: {e}")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,14 @@
+from unicodedata import category
+
 from Database.models import *
 from Database.session import BaseDatabase
 from sqlalchemy import *
+import Bot.misc.constants as constants
 
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, and_
+
 
 class TaQueries(BaseDatabase):
     # async def insert_user(self, tg_id: int, username: str):
@@ -63,3 +67,14 @@ class TaQueries(BaseDatabase):
                 select(TargetAudienceSmm.target_audience_id).where(TargetAudienceSmm.smm_id == user_id)
             )
             return result.fetchall()
+
+    async def load_all_ta(self):
+        async with self.db() as session:
+            for ta in constants.data:
+                fl = await session.execute(
+                    select(TargetAudience.id).where(TargetAudience.id == ta[0])
+                )
+                if fl.fetchone() is None:
+                    new_ta = TargetAudience(id=ta[0], name=ta[1], category=ta[2])
+                    session.add(new_ta)
+            await session.commit()

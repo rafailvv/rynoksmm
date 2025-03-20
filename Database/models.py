@@ -2,8 +2,9 @@ from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Identity, Integ
 from sqlalchemy.dialects.postgresql import UUID
 
 from sqlalchemy.orm import declarative_base, relationship
+from Database.session import Base
 
-Base = declarative_base()
+# Base = declarative_base()
 
 
 class Promocodes(Base):
