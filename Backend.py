@@ -250,8 +250,8 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     return {"id": payment.id, "confirmation_token": confirmation_token}
 
 app.include_router(mainpage_router)
-
-authentication_backend = BasicAuth()
+secret_key = [chr(random.randint(1, 128)) for i in range(random.randint(75, 100))]
+authentication_backend = BasicAuth(secret_key)
 engine = BaseDatabase(config).session_manager.engine
 # admin = Admin(app, engine, dependencies=[Depends(admin_auth)])
 admin = Admin(app, engine, authentication_backend=authentication_backend)
