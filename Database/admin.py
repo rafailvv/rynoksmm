@@ -9,8 +9,10 @@ from Database.models import *
 import uvicorn
 from fastapi.responses import HTMLResponse
 import secrets
+from fastapi.requests import Request
 
 security = HTTPBasic()
+
 
 class BasicAuth(AuthenticationBackend):
     async def login(self, request: Request, credentials: HTTPBasicCredentials = Depends(security)) -> bool:
@@ -31,7 +33,6 @@ class BasicAuth(AuthenticationBackend):
         else:
             request.session.update({"authenticated": True})
             return True
-
 
     async def logout(self, request: Request) -> bool:
         request.session.clear()
