@@ -24,6 +24,7 @@ from Bot.config import config
 from Database.admin import *
 from Database.session import BaseDatabase
 
+from sqladmin.authentication import AuthenticationBackend
 from sqladmin import Admin, ModelView
 # endregion
 
