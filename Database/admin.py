@@ -6,6 +6,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from Bot.config import config
 from Database.models import *
 import uvicorn
+from fastapi.response import HTMLResponse
+import secrets
 
 security = HTTPBasic()
 
@@ -13,12 +15,13 @@ security = HTTPBasic()
 def admin_auth(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = config.db.user
     correct_password = config.db.password
-    if credentials.username != correct_username or credentials.password != correct_password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверные данные авторизации",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+    is_correct_username = secrets.compare_digest(credentials.username, correct_username)
+    is_correct_password = secrets.compare_digest(credentials.password, correct_password)
+
+    if not (is_correct_username and is_correct_password):
+        with open("API/profile/templates/admin_login.html", "r", encoding="utf-8") as file:
+            html_content = file.read()
+            return HTMLResponse(html_content)
 
 
 class Promocodes(ModelView, model=Promocodes):

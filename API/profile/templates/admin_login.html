@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форма входа</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 320px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        input {
+            display: block;
+            width: 300px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script>
+        const username = document.getElementById('login');
+        const password = document.getElementById('password');
+        const url = '/admin';
+
+        const basicAuth = 'Basic ' + btoa(username + ':' + password);
+
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': basicAuth,
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Ошибка авторизации');
+          }
+          return response;
+        })
+
+    </script>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Вход</h2>
+        <form>
+            <input type="text" placeholder="Логин" id="login" required>
+            <input type="password" placeholder="Пароль" id="password" required>
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -251,7 +251,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
 app.include_router(mainpage_router)
 
 engine = BaseDatabase(config).session_manager.engine
-admin = Admin(app, engine) #, dependencies=[Depends(admin_auth)]
+admin = Admin(app, engine, dependencies=[Depends(admin_auth)])
 admin.add_view(Promocodes)
 admin.add_view(TargetAudience)
 admin.add_view(Support)
