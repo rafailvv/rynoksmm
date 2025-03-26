@@ -59,7 +59,6 @@ from Backup.backup import scheduler_
 
 from Database.session import BaseDatabase
 
-import openpyxl
 
 
 logging.basicConfig(

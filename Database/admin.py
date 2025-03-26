@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from Bot.config import config
 from Database.models import *
 import uvicorn
-from fastapi.response import HTMLResponse
+from fastapi.responses import HTMLResponse
 import secrets
 
 security = HTTPBasic()
