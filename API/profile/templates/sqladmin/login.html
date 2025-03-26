@@ -74,11 +74,14 @@
 <body>
     <div class="login-container">
         <h2>Вход</h2>
-        <form>
+        <form method="post" action="{{ request.url }}" >
             <input type="text" placeholder="Логин" id="login" required>
             <input type="password" placeholder="Пароль" id="password" required>
             <button type="submit">Войти</button>
         </form>
+        {% if request.query_params.get("error") %}
+            <p style="color:red;">Неверные учетные данные</p>
+        {% endif %}
     </div>
 </body>
 </html>
