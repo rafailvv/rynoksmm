@@ -18,6 +18,7 @@ class Promocodes(Base):
     text_ = Column('text', Text, nullable=False)
 
 
+
 class Support(Base):
     __tablename__ = 'support'
 

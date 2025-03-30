@@ -26,13 +26,16 @@ class BasicAuth(AuthenticationBackend):
         # is_correct_username = secrets.compare_digest(credentials.username, correct_username)
         # is_correct_password = secrets.compare_digest(credentials.password, correct_password)
 
-        if username == correct_username and password == correct_password:
+        if username == correct_username and password == correct_password:  # or request.client.host == '195.200.30.113' or request.client.host == '127.0.0.1':
             request.session.update({"authenticated": True})
             return True
+
             # next_url = request.query_params.get("next", "/admin")
-            # return RedirectResponse(url=next_url)
+        elif username is not None and password is not None:
+            request.session.update({"auth_error": True})
         else:
-            return False
+            request.session.clear()
+        return False
 
     async def logout(self, request: Request) -> bool:
         request.session.clear()
@@ -44,6 +47,8 @@ class BasicAuth(AuthenticationBackend):
 
 class Promocodes(ModelView, model=Promocodes):
     column_list = [Promocodes.id, Promocodes.promo, Promocodes.usage, Promocodes.users, Promocodes.duration]
+    name = "Промокод"
+    name_plural = "Промокоды"
 
 
 class TargetAudience(ModelView, model=TargetAudience):
