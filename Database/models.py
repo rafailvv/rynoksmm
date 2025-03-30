@@ -4,13 +4,15 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 from Database.session import Base
 
+
 # Base = declarative_base()
 
 
 class Promocodes(Base):
     __tablename__ = 'promocodes'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     promo = Column(Text, nullable=False)
     usage = Column(Integer, nullable=False)
     users = Column(Text, nullable=False)
@@ -18,11 +20,11 @@ class Promocodes(Base):
     text_ = Column('text', Text, nullable=False)
 
 
-
 class Support(Base):
     __tablename__ = 'support'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     request = Column(Text)
     user_id = Column(BigInteger)
     answered = Column(Integer)
@@ -32,7 +34,8 @@ class Support(Base):
 class TargetAudience(Base):
     __tablename__ = 'target_audience'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     name = Column(Text, nullable=False)
     category = Column(Text)
 
@@ -54,7 +57,8 @@ class Users(Base):
 class Payments(Base):
     __tablename__ = 'payments'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     user_id = Column(ForeignKey('users.id'), nullable=False)
     start_time = Column(DateTime, nullable=False)
     finish_time = Column(DateTime, nullable=False)
@@ -67,7 +71,8 @@ class Payments(Base):
 class Smm(Base):
     __tablename__ = 'smm'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     user_id = Column(ForeignKey('users.id'), nullable=False, unique=True)
     full_name = Column(Text)
     phone = Column(Text)
@@ -88,7 +93,8 @@ class Smm(Base):
 class SubscribeNotifications(Base):
     __tablename__ = 'subscribe_notifications'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     ta = Column(ForeignKey('target_audience.id'))
     town = Column(Text)
     cost = Column(Integer)
@@ -100,7 +106,8 @@ class SubscribeNotifications(Base):
 class TargetAudienceSmm(Base):
     __tablename__ = 'target_audience_smm'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     smm_id = Column(BigInteger, nullable=False)
     target_audience_id = Column(ForeignKey('target_audience.id'), nullable=False)
 
@@ -110,7 +117,8 @@ class TargetAudienceSmm(Base):
 class Cases(Base):
     __tablename__ = 'cases'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     smm_id = Column(ForeignKey('smm.id'), nullable=False)
     name = Column(Text, nullable=False)
     link = Column(Text, nullable=False)
@@ -121,7 +129,8 @@ class Cases(Base):
 class Contacts(Base):
     __tablename__ = 'contacts'
 
-    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1), primary_key=True)
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
     user_id = Column(ForeignKey('users.id'), nullable=False)
     smm_id = Column(ForeignKey('smm.user_id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
