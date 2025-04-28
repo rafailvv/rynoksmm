@@ -9,6 +9,7 @@ class TgBotConfig:
     token: str
     pay_token: str
     admins: List[int]
+    prof: str
 
 
 @dataclass
@@ -58,7 +59,7 @@ def load_config(path: str = None):
     return Config(
         tg_bot=TgBotConfig(
             token=env.str("BOT_TOKEN"), pay_token=env.str("PAY_TOKEN"),
-            admins=list(map(int, env.str("ADMINS").split(",")))),
+            admins=list(map(int, env.str("ADMINS").split(","))), prof=env.str("BOT_PROF")),
         db=DbConfig(
             host=env.str("DB_HOST"),
             password=env.str("DB_PASS"),
@@ -76,4 +77,4 @@ def load_config(path: str = None):
     )
 
 
-config = load_config(".env")
+config = load_config("smm.env")

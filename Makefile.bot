@@ -5,4 +5,4 @@ stop:
 attach:
 	docker attach rynoksmm
 dell:
-	docker rm rynoksmm
+	docker rm rynoksm

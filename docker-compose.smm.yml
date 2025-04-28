@@ -1,0 +1,54 @@
+networks:
+  mynetwork:
+
+services:
+  bot_smm:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - smm.env
+    depends_on:
+      - redis_smm
+      - db_smm
+    networks:
+      - mynetwork
+
+  web_smm:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8000:8000"
+    env_file:
+      - smm.env
+    depends_on:
+      - redis_smm
+      - db_smm
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  redis_smm:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    networks:
+      - mynetwork
+
+  db_smm:
+    image: "postgres:latest"
+    environment:
+      POSTGRES_USER: rynoksmm
+      POSTGRES_PASSWORD: 23jQ29155skR9659
+      POSTGRES_DB: rynoksmm
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+volumes:
+  pg_data:
