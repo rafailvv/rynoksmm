@@ -272,6 +272,6 @@ admin.add_view(Contacts)
 
 if __name__ == "__main__":
     try:
-        uvicorn.run(app, host="0.0.0.0", port=443, ssl_keyfile="privkey.pem", ssl_certfile="fullchain.pem")
+        uvicorn.run(app, host="0.0.0.0", port=443)
     except:
         uvicorn.run(app, host="127.0.0.1", port=80)
