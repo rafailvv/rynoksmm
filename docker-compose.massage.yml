@@ -33,7 +33,7 @@ services:
   redis_massage:
     image: "redis:latest"
     ports:
-      - "6480:6480"
+      - "6481:6481"
     networks:
       - mynetwork
 
