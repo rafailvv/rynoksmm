@@ -8,11 +8,7 @@ RUN pip install --no-cache-dir --use-deprecated=legacy-resolver -r requirements.
 
 COPY . .
 
-#COPY /etc/letsencrypt/live/rynoksmm.ru/privkey.pem ./privkey.pem
 
-#COPY /etc/letsencrypt/live/rynoksmm.ru/fullchain.pem ./fullchain.pem
-
-
-CMD ["/bin/bash", "-c", "python Backend.py"]
+CMD ["uvicorn", "Backend:app", "--host", "0.0.0.0", "--port", "8000"]
 
 

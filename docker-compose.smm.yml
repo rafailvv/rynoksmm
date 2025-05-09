@@ -18,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    command: uvicorn Backend:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     env_file:
