@@ -1,3 +1,7 @@
+networks:
+  mynetwork:
+
+
 services:
   nginx:
     image: nginx:latest
@@ -6,10 +10,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /nginx
+      - ./nginx
 
     networks:
       - mynetwork
-
-networks:
-  mynetwork:
