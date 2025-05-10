@@ -66,7 +66,7 @@ logging.basicConfig(
 )
 
 if config.redis.use_redis:
-    redis = Redis(host=config.redis.host, port=6379)
+    redis = Redis(host=config.redis.host, port=config.redis.port)
     storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
 else:

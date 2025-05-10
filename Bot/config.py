@@ -25,6 +25,7 @@ class DbConfig:
 class RedisConfig:
     host: str
     use_redis: bool
+    port: int
 
 
 @dataclass
@@ -67,7 +68,7 @@ def load_config(path: str = None):
             database=env.str("DB_NAME"),
             port=env.str("DB_PORT"),
         ),
-        redis=RedisConfig(host=env.str("REDIS_HOST"), use_redis=env.bool("USE_REDIS")),
+        redis=RedisConfig(host=env.str("REDIS_HOST"), use_redis=env.bool("USE_REDIS"), port=env.int("REDIS_PORT")),
         yookassa=Yookassa(
             shop_id=env.int("YOOKASSA_SHOP_ID"),
             secret_key=env.str("YOOKASSA_SECRET_KEY")
