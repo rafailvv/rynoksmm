@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    command: uvicorn Backend:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn Backend:app --host 0.0.0.0 --port 8001 --reload --proxy-headers
     ports:
       - "8001:8001"
     env_file:
