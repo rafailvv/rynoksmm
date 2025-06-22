@@ -52,7 +52,7 @@
 <body>
     <div class="login-container">
         <h2>Вход</h2>
-        <form method="post" action="{{ /admin/login }}" >
+        <form method="post" action="{{ request.url }}" >
             <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
             <input type="text" name="username" placeholder="Логин" id="login" required>
             <input type="password" name="password" placeholder="Пароль" id="password" required>
