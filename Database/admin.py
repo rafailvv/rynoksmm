@@ -53,24 +53,34 @@ class Promocodes(ModelView, model=Promocodes):
 
 class TargetAudience(ModelView, model=TargetAudience):
     column_list = [TargetAudience.id, TargetAudience.name, TargetAudience.category]
+    name = "Целевая аудитория"
+    name_plural = "Целевые аудитории"
 
 
 class Support(ModelView, model=Support):
     column_list = [Support.id, Support.request, Support.user_id, Support.answered, Support.tg_url]
+    name = "Запрос в поддержку"
+    name_plural = "Запросы в поддержку"
 
 
 class Users(ModelView, model=Users):
     column_list = [Users.id, Users.username]
+    name = "Пользователь"
+    name_plural = "Пользователи"
 
 
 class Payments(ModelView, model=Payments):
     column_list = [Payments.id, Payments.user_id, Payments.start_time, Payments.finish_time, Payments.cost,
                    Payments.payment_id]
+    name = "Оплата"
+    name_plural = "Оплаты"
 
 
 class Smm(ModelView, model=Smm):
     column_list = [Smm.id, Smm.user_id, Smm.full_name, Smm.phone, Smm.age, Smm.town, Smm.cost, Smm.photo, Smm.free_sub,
                    Smm.description, Smm.date_sub, Smm.promos]
+    name = "СММ"
+    name_plural = "СММ"
 
 
 class SubscribeNotifications(ModelView, model=SubscribeNotifications):
