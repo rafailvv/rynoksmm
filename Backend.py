@@ -142,9 +142,14 @@ async def main_page_info(request: Request, user_id: int):
 
 @mainpage_router.post("/profile")
 async def update(user: User):
+    if user.user_id not in await db.users.lst_of_users():
+        await db.users.add_user(user.user_id, None)
+    if await db.smm.get_profile_by_id(user.user_id) is None:
+        await db.smm.add_smm(user.user_id, datetime.utcnow())
     await db.smm.updt_user(
         user_id=user.user_id, age=user.age, phone=user.phone, fullname=user.name, cost=user.cost, town=user.town, description=user.description
     )
+
 
 
 @mainpage_router.post("/upload/{user_id}")

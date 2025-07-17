@@ -1,6 +1,7 @@
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from Bot.config import config
 
 Base = declarative_base()
 
@@ -29,3 +30,8 @@ class BaseDatabase:
 
     async def init_db(self):
         await self.session_manager.create_db()
+
+async def get_db():
+    bd = BaseDatabase(config=config)
+    async with bd.db() as session:
+        yield session

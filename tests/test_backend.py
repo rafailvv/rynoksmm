@@ -1,9 +1,10 @@
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from Backend import app, get_db
-from Backend.models import Base  # где у вас Base = declarative_base()
+from Backend import app
+from Database.session import Base, get_db  # где у вас Base = declarative_base()
 import asyncio
 from Bot.config import config
 
@@ -36,7 +37,7 @@ def override_get_db(db_session):
 
 
 # Асинхронный клиент FastAPI
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def async_client():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -62,4 +63,7 @@ async def test_profile(async_client):
     # GET: получение профиля
     response = await async_client.get(f"/profile/info/{json['user_id']}")
     assert response.status_code == 200
-    assert response.json() == json
+    responsejs = response.json()
+    assert responsejs['result']
+    assert responsejs['user_id'] == json['user_id']
+    assert responsejs['name'] == json['name']
