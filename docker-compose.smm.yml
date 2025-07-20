@@ -45,7 +45,7 @@ services:
       POSTGRES_PASSWORD: 23jQ29155skR9659
       POSTGRES_DB: rynoksmm
     ports:
-      - "5433:5433"
+      - "5433:5432"
     volumes:
       - pg_data_smm:/var/lib/postgresql/data
     networks:

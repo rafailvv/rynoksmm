@@ -45,7 +45,7 @@ services:
       POSTGRES_PASSWORD: 23jQ29155skR9659
       POSTGRES_DB: rynokmassage
     ports:
-      - "5434:5434"
+      - "5434:5432"
     volumes:
       - pg_data_massage:/var/lib/postgresql/data
     networks:

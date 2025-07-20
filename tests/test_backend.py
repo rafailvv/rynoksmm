@@ -67,3 +67,23 @@ async def test_profile(async_client):
     assert responsejs['result']
     assert responsejs['user_id'] == json['user_id']
     assert responsejs['name'] == json['name']
+
+
+@pytest.mark.asyncio
+async def test_pay_token(async_client):
+    json = {
+        'client_id': 10,
+        'price': 1000,
+        'days': 30,
+        'email': 'test@gmail.com',
+        'req': "subscription"
+    }
+    response = await async_client.post('/payment/token', json=json)
+    assert response.status_code == 200
+    response = response.json()
+    assert response['result']
+    assert response['id'] is not None
+    assert response['confirmation_token'] is not None
+
+
+

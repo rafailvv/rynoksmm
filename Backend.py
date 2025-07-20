@@ -217,44 +217,46 @@ async def get_confirmation_token(payment_request: PaymentRequest):
 
     # Преобразование цены
     price = str(max(0, int(price * 100)) / 100)
-
-    # Создание платежа
-    idempotence_key = str(uuid.uuid4())
-    payment = Payment.create({
-        "amount": {
-            "value": price,
-            "currency": "RUB"
-        },
-        "confirmation": {
-            "type": "embedded"
-        },
-        "receipt": {
-            "items": [
-                {
-                    "amount": {
-                        "value": price,
-                        "currency": "RUB"
-                    },
-                    "quantity": 1,
-                    "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
-                    "vat_code": 1,
-                    "payment_subject": "service",
-                    "payment_mode": "full_prepayment"
+    try:
+        # Создание платежа
+        idempotence_key = str(uuid.uuid4())
+        payment = Payment.create({
+            "amount": {
+                "value": price,
+                "currency": "RUB"
+            },
+            "confirmation": {
+                "type": "embedded"
+            },
+            "receipt": {
+                "items": [
+                    {
+                        "amount": {
+                            "value": price,
+                            "currency": "RUB"
+                        },
+                        "quantity": 1,
+                        "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
+                        "vat_code": 1,
+                        "payment_subject": "service",
+                        "payment_mode": "full_prepayment"
+                    }
+                ],
+                "customer": {
+                    "email": email
                 }
-            ],
-            "customer": {
-                "email": email
-            }
-        },
-        "capture": True,
-        "test": True,
-        "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
-        "metadata": {"client_id": client_id, "type": req, "days": days}
-    }, idempotence_key)
+            },
+            "capture": True,
+            "test": True,
+            "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
+            "metadata": {"client_id": client_id, "type": req, "days": days}
+        }, idempotence_key)
 
     # Получение и возврат токена подтверждения
-    confirmation_token = payment.confirmation.confirmation_token
-    return {"id": payment.id, "confirmation_token": confirmation_token}
+        confirmation_token = payment.confirmation.confirmation_token
+        return {"result": True, "id": payment.id, "confirmation_token": confirmation_token}
+    except:
+        return {"result": False}
 
 app.include_router(mainpage_router)
 secret_key = [chr(random.randint(1, 128)) for i in range(random.randint(75, 100))]
