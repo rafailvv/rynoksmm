@@ -28,6 +28,8 @@ from sqladmin.authentication import AuthenticationBackend
 from sqladmin import Admin, ModelView
 
 import random
+
+from starlette.middleware.proxyheaders import ProxyHeadersMiddleware
 # endregion
 
 app = FastAPI(
@@ -258,13 +260,14 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     except:
         return {"result": False}
 
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
 app.include_router(mainpage_router)
 secret_key = [chr(random.randint(1, 128)) for i in range(random.randint(75, 100))]
 authentication_backend = BasicAuth(secret_key)
 engine = BaseDatabase(config).session_manager.engine
 # admin = Admin(app, engine, dependencies=[Depends(admin_auth)])
 admin = Admin(app, engine, authentication_backend=authentication_backend, templates_dir="API/profile/templates")
-
 
 admin.add_view(Promocodes)
 admin.add_view(TargetAudience)

@@ -86,15 +86,23 @@ class Smm(ModelView, model=Smm):
 class SubscribeNotifications(ModelView, model=SubscribeNotifications):
     column_list = [SubscribeNotifications.id, SubscribeNotifications.ta, SubscribeNotifications.town,
                    SubscribeNotifications.cost, SubscribeNotifications.user_id]
+    name = "СММ"
+    name_plural = "СММ"
 
 
 class TargetAudienceSmm(ModelView, model=TargetAudienceSmm):
     column_list = [TargetAudienceSmm.id, TargetAudienceSmm.smm_id, TargetAudienceSmm.target_audience_id]
+    name = "СММ"
+    name_plural = "СММ"
 
 
 class Cases(ModelView, model=Cases):
     column_list = [Cases.id, Cases.smm_id, Cases.name, Cases.link]
+    name = "Кейс"
+    name_plural = "Кейсы"
 
 
 class Contacts(ModelView, model=Contacts):
     column_list = [Contacts.id, Contacts.user_id, Contacts.smm_id]
+    name = "Контакт"
+    name_plural = "Контакты"
