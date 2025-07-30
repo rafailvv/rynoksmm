@@ -29,7 +29,7 @@ from sqladmin import Admin, ModelView
 
 import random
 
-from starlette.middleware.proxyheaders import ProxyHeadersMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 # endregion
 
 app = FastAPI(
