@@ -4,7 +4,6 @@ from Database.queries.smm import SmmQueries
 from Database.queries.contacts import ContactsQueries
 from Bot.config import config
 
-
 class Database:
     users = UsersQueries(config)
     ta = TaQueries(config)

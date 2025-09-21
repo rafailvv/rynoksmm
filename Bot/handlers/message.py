@@ -6,6 +6,7 @@ import os
 import uuid
 
 from Bot.config import config
+import json
 
 import PIL.ImageOps
 from aiogram import Bot, Dispatcher, F, types
@@ -60,6 +61,16 @@ from aiogram.exceptions import TelegramForbiddenError
 from openai import OpenAI
 
 message_router = Router()
+
+def load_prof_details():
+    """Загружает детали профессий из JSON файла"""
+    try:
+        with open("prof_details.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+prof_details = load_prof_details()
 
 
 async def got_payment(message: Message, payment_response: PaymentResponse, payment_type, payment_id, state: FSMContext):
@@ -130,11 +141,16 @@ async def start(message: Message):
     # else:
 
     await db.users.add_user(message.chat.id, message.chat.username)
+    
+    # Получаем данные для текущей профессии
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
+    
     button_phone = [
         [
-            InlineKeyboardButton(text="Я SMM", callback_data="menu|smm"),
-            InlineKeyboardButton(text="Я ищу SMM", callback_data="menu|looking_smm"),
-        ], [InlineKeyboardButton(text="НейроSMM 🤖", callback_data="menu|ai")]
+            InlineKeyboardButton(text=prof_data.get("button_i_am", "Я специалист"), callback_data="menu|smm"),
+            InlineKeyboardButton(text=prof_data.get("button_i_looking", "Я ищу специалиста"), callback_data="menu|looking_smm"),
+        ], [InlineKeyboardButton(text=prof_data.get("ai_name", "НейроБот 🤖"), callback_data="menu|ai")]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
     btn = [
@@ -159,11 +175,13 @@ async def start(message: Message):
 @message_router.message(CommandStart())
 async def deep_link_start(message: Message, state: FSMContext):
     data = message.text.split()[1]
-    if data == "i_smm":
+    prof_type = config.prof.prof
+    
+    if data == f"i_{prof_type}":
         await state.clear()
         await state.update_data(ta=[])
         await smm_menu(message, state)
-    elif data == "i_looking_smm":
+    elif data == f"i_looking_{prof_type}":
         await state.clear()
         await state.update_data(ta=[])
         await search_by_field(message, state)
@@ -186,7 +204,12 @@ async def deep_link_start(message: Message, state: FSMContext):
 async def ai_smm(message: Message, state: FSMContext):
     state_data = await state.get_data()
     query = message.text
-    if query == "Выйти из НейроSMM ❌":
+    
+    # Получаем данные для текущей профессии
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
+    
+    if query == prof_data.get("ai_exit", "Выйти из НейроБот ❌"):
         await state.clear()
         await state.update_data(state_data)
         btn = [
@@ -198,7 +221,7 @@ async def ai_smm(message: Message, state: FSMContext):
         if await db.smm.is_smm(message.chat.id) and await db.smm.get_date_sub(message.chat.id) < datetime.utcnow():
             btn.append([KeyboardButton(text="Оформить подписку 🎟")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer("Вы вышли из НейроSMM", reply_markup=btn)
+        await message.answer(prof_data.get("ai_exit_message", "Вы вышли из НейроБот"), reply_markup=btn)
         return
     if state_data["user_requests_limit"] <= state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
         btn = [
@@ -255,9 +278,13 @@ async def extend_sub(message: Message, state: FSMContext):
 
 @message_router.message(Command("i_smm"))
 async def smm_menu(message: Message, state: FSMContext):
+    # Получаем данные для текущей профессии
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
+    
     if await db.smm.is_smm(message.chat.id):
         await message.answer(
-            f"У вас уже есть аккаунт SMM. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'.")
+            prof_data.get("profile_exists_message", "У вас уже есть аккаунт. Вы можете просмотреть или изменить его, нажав на кнопку 'Профиль'."))
     else:
         scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=1)),
                           args=[message.chat.id, message.chat.first_name])
@@ -270,7 +297,7 @@ async def smm_menu(message: Message, state: FSMContext):
         scheduler.add_job(send_notification, DateTrigger(datetime.now() + timedelta(days=30)),
                           args=[message.chat.id, message.chat.first_name])
         await db.smm.add_smm(message.chat.id, datetime.utcnow())
-        await message.answer(f"Заполните анкету.")
+        await message.answer(prof_data.get("fill_questionnaire", "Заполните анкету."))
         await message.answer("Введите ваше имя и фамилию 👇")
 
         await state.set_state(st.fullname)

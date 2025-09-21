@@ -28,6 +28,7 @@ from sqladmin.authentication import AuthenticationBackend
 from sqladmin import Admin, ModelView
 
 import random
+import json
 
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 # endregion
@@ -64,6 +65,16 @@ mainpage_router = APIRouter()
 templates = Jinja2Templates(directory="API/profile/templates")
 app.mount("/templates", StaticFiles(directory="API/profile/templates"), name="templates")
 
+def load_prof_details():
+    """Загружает детали профессий из JSON файла"""
+    try:
+        with open("prof_details.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+prof_details = load_prof_details()
+
 
 # @app.get("/items/{id}", response_class=HTMLResponse)
 # async def read_item(request: Request, id: str):
@@ -81,7 +92,19 @@ class User(BaseModel):
 
 @mainpage_router.get("/", tags=["products"])
 async def main_page_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request, 
+        "i_am": config.prof.i_am, 
+        "i_looking": config.prof.i_looking, 
+        "prof": prof_type,
+        "title": prof_data.get("title", "Рынок"),
+        "description": prof_data.get("description", "Описание"),
+        "button_i_am": prof_data.get("button_i_am", "Я специалист"),
+        "button_i_looking": prof_data.get("button_i_looking", "Я ищу специалиста")
+    })
 
 
 @mainpage_router.get("/profile")
@@ -91,7 +114,14 @@ async def main_page_router(request: Request):
 
 @mainpage_router.get("/no_acc")
 async def no_acc(request: Request):
-    return templates.TemplateResponse("no_acc.html", {"request": request})
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
+    
+    return templates.TemplateResponse("no_acc.html", {
+        "request": request,
+        "button_i_am": prof_data.get("button_i_am", "Я специалист"),
+        "prof": prof_type
+    })
 
 
 @mainpage_router.get("/profile/info/{user_id}")
@@ -216,6 +246,10 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     days = payment_request.days
     email = payment_request.email
     req = payment_request.req
+    
+    # Получаем данные для текущей профессии
+    prof_type = config.prof.prof
+    prof_data = prof_details.get(prof_type, {})
 
     # Преобразование цены
     price = str(max(0, int(price * 100)) / 100)
@@ -238,7 +272,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
                             "currency": "RUB"
                         },
                         "quantity": 1,
-                        "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
+                        "description": f'Подписка {days}' if req == 'subscription' else f'{days} {prof_data.get("ai_requests_description", "Запросов к НейроБот")}',
                         "vat_code": 1,
                         "payment_subject": "service",
                         "payment_mode": "full_prepayment"
@@ -250,7 +284,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
             },
             "capture": True,
             "test": True,
-            "description": f"{f'Подписка {days}' if req == 'subscription' else f'{days} Запросов к НейроСММ'}",
+            "description": f'Подписка {days}' if req == 'subscription' else f'{days} {prof_data.get("ai_requests_description", "Запросов к НейроБот")}',
             "metadata": {"client_id": client_id, "type": req, "days": days}
         }, idempotence_key)
 

@@ -44,6 +44,12 @@ class Mistral:
     model: str
 
 @dataclass
+class ProfConfig:
+    i_am: str
+    i_looking: str
+    prof: str
+
+@dataclass
 class Config:
     tg_bot: TgBotConfig
     db: DbConfig
@@ -51,9 +57,25 @@ class Config:
     yookassa: Yookassa
     gpt: GPTConfig
     mistral: Mistral
+    prof: ProfConfig
 
 
 def load_config(path: str = None):
+    import os
+    
+    # Автоматическое определение .env файла
+    if path is None:
+        # Проверяем переменные окружения Docker
+        if "BOT_PROF" in os.environ:
+            prof = os.environ["BOT_PROF"]
+            if prof == "smm":
+                path = "smm.env"
+            elif prof == "massage":
+                path = "massage.env"
+            else:
+                path = ".env"  # fallback
+    
+    
     env = Env()
     env.read_env(path)
 
@@ -74,8 +96,10 @@ def load_config(path: str = None):
             secret_key=env.str("YOOKASSA_SECRET_KEY")
         ),
         gpt=GPTConfig(api_key=env.str("GPT_API_KEY"), asst_key=env.str("GPT_ASST_KEY")),
-        mistral=Mistral(api_key=env.str("MISTRAL_API_KEY"), model=env.str("MISTRAL_MODEL"))
+        mistral=Mistral(api_key=env.str("MISTRAL_API_KEY"), model=env.str("MISTRAL_MODEL")),
+        prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF"))
     )
 
 
-config = load_config("smm.env")
+# Загружаем конфигурацию один раз при импорте модуля
+config = load_config()

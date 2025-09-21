@@ -28,7 +28,7 @@ USER_ID = 5283298935
 
 async def send_backup(user_id, backup_path):
     attempt = 0
-    while attempt < 100:
+    while attempt < 5:
         try:
             await bot.send_document(user_id, document=FSInputFile(backup_path),
                                     caption=datetime.now().strftime('%H:%M:%S %d.%m.%Y'))

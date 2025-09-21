@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="img.jpeg">
-    <title>SMM Page</title>
+    <title>{{ title }} Page</title>
     <style>
         body {
           margin: 0;
@@ -245,11 +245,11 @@ body{
     </ul>
 </div>
 <div class="context">
-    <h1>Рынок SMM</h1>
-    <p>Бот подбирает smm-специалистов с целевой аудиторией по параметрам вашего бизнеса</p>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
     <div class="button-container">
-        <a href="https://t.me/rynoksmm_bot?start=i_smm" class="button">Я SMM</a>
-        <a href="https://t.me/rynoksmm_bot?start=i_looking_smm" class="button">Я ищу SMM</a>
+        <a href="https://t.me/rynoksmm_bot?start=i_{{ prof }}" class="button">{{ button_i_am }}</a>
+        <a href="https://t.me/rynoksmm_bot?start=i_looking_{{ prof }}" class="button">{{ button_i_looking }}</a>
     </div>
 </div>
 

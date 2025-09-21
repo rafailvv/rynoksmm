@@ -35,7 +35,8 @@ from Database.manager import db
 from Bot.misc.states import SmmStatesGroup as st
 from Bot.misc.methods import *
 from Bot.handlers.message import *
-
+from Bot.config import config
+import json
 
 from PIL import Image, ImageDraw
 
@@ -58,6 +59,16 @@ from openai import OpenAI
 
 callback_router = Router()
 
+def load_prof_details():
+    """Загружает детали профессий из JSON файла"""
+    try:
+        with open("prof_details.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+prof_details = load_prof_details()
+
 
 @callback_router.callback_query(lambda q: "menu" == q.data.split('|')[0])
 async def menu(callback: CallbackQuery, state: FSMContext):
@@ -79,9 +90,15 @@ async def menu(callback: CallbackQuery, state: FSMContext):
             state_data["user_requests_count"] = 0
         await state.update_data(state_data)
         await state.set_state(st.thread_state)
-        btns = [[KeyboardButton(text="Выйти из НейроSMM ❌")]]
+        
+        # Получаем данные для текущей профессии
+        prof_type = config.prof.prof
+        prof_data = prof_details.get(prof_type, {})
+        
+        btns = [[KeyboardButton(text=prof_data.get("ai_exit", "Выйти из НейроБот ❌"))]]
         btns = ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)
-        await message.answer(f"Добро пожаловать в НейроСММ, он поможет вам в написании контента, создании картинок и упаковке профиля.\nУ вас осталось {state_data['user_requests_limit'] - state_data['user_requests_count']} запросов", reply_markup=btns)
+        ai_name = prof_data.get("ai_name", "НейроБот").replace(" 🤖", "")
+        await message.answer(f"Добро пожаловать в {ai_name}, он поможет вам в написании контента и упаковке профиля.\nУ вас осталось {state_data['user_requests_limit'] - state_data['user_requests_count']} запросов", reply_markup=btns)
 
     await callback.answer()
 
