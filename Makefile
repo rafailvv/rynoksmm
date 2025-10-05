@@ -1,21 +1,30 @@
 DC_FILES = -f docker-compose.smm.yml \
-           -f docker-compose.massage.yml \
-           -f docker-compose.nginx.yml
+           -f docker-compose.massage.yml
+           
 
+
+up-logs:
+	docker-compose $(DC_FILES) up $(NAME)
+	docker-compose -f docker-compose.nginx.yml up nginx
 
 up:
 	docker-compose $(DC_FILES) up -d $(NAME)
+	docker-compose -f docker-compose.nginx.yml up -d nginx
 
 down:
 	docker-compose $(DC_FILES) down $(NAME)
+	docker-compose -f docker-compose.nginx.yml down nginx
 
 logs:
-	docker-compose $(DC_FILES) logs -f $(NAME)
+	docker-compose $(DC_FILES) -f docker-compose.nginx.yml logs -f $(NAME)
+
 ps:
-	docker-compose $(DC_FILES) ps
+	docker-compose $(DC_FILES) -f docker-compose.nginx.yml ps
+
 
 build:
 	docker-compose $(DC_FILES) build $(NAME)
+	docker-compose -f docker-compose.nginx.yml build nginx
 
 
 smm:

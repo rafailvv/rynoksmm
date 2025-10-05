@@ -1,148 +1,239 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/html">
+<html lang="ru" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Профиль</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="/templates/profile_styles.css" rel="stylesheet">
 </head>
-<body>
+<body class="modern-body">
 <div id="loading" class="loading-overlay">
     <img src="/templates/images/duck_loading.gif" alt="Loading">
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="accessModal" tabindex="-1" role="dialog" aria-labelledby="accessModalLabel"
-     aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="accessModalLabel">Нет доступа</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<div class="modal fade" id="accessModal" tabindex="-1" aria-labelledby="accessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-modal">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-semibold" id="accessModalLabel">
+                    <i class="fas fa-lock text-warning me-2"></i>Нет доступа
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                У вас не разблокирована категория <span id="categoryName"></span>.
+            <div class="modal-body text-center py-4">
+                <p class="mb-0">У вас не разблокирована категория <span id="categoryName" class="fw-semibold text-primary"></span>.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-primary" id="buyButton">Купить</button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="container mt-5" style="padding: 20px">
+<div class="container-fluid px-4 py-5">
+    <!-- Profile Header Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-card profile-header-card">
+                <div class="row align-items-center">
+                    <div class="col-lg-4 col-md-5 text-center mb-4 mb-md-0">
+                        <div class="profile-image-container">
+                            <img src="/templates/images/{{user_id}}.jpg" alt="Фото профиля"
+                                 class="profile-image" id="photo" onclick="changePhoto()">
+                            <div class="profile-image-overlay">
+                                <i class="fas fa-camera"></i>
+                                <span>Изменить фото</span>
+                            </div>
+                            <input type="file" id="fileInput" style="display: none;" accept="image/*"
+                                   onchange="handleFileChange(event)">
+                        </div>
+                    </div>
+                    <div class="col-lg-8 col-md-7">
+                        <div class="profile-info">
+                            <h1 class="profile-name" id="name">{{name}}</h1>
+                            <div class="profile-meta">
+                                <div class="meta-item">
+                                    <i class="fas fa-phone text-primary"></i>
+                                    <span id="phone">{{phone}}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-birthday-cake text-success"></i>
+                                    <span id="age">{{age}} лет</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-map-marker-alt text-danger"></i>
+                                    <span id="city">{{town}}</span>
+                                </div>
+                                <div class="meta-item price-item">
+                                    <i class="fas fa-ruble-sign text-warning"></i>
+                                    <span>от <span id="cost" class="price-value">{{cost}}</span>₽</span>
+                                </div>
+                            </div>
+                            <div class="profile-description mt-3">
+                                <p id="description" class="description-text">{{description}}</p>
+                            </div>
+                            <div class="profile-actions mt-4">
+                                <button type="button" class="btn btn-primary btn-modern" 
+                                        data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                                        onclick="fillModalFields()">
+                                    <i class="fas fa-edit me-2"></i>Редактировать профиль
+                                </button>
+                            </div>
+                            <div class="subscription-info mt-3">
+                                <small class="text-muted" id="date_sub">{{date_sub}}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Section -->
     <div class="row">
-        <div class="col-md-3"> <!-- Изменил класс на col-md-3 -->
-            <!-- Изменяем размер фото -->
-            <img src="/templates/images/{{user_id}}.jpg" alt="Фото профиля"
-                 class="img-fluid rounded-circle profile-image" id="photo" onclick="changePhoto()">
-            <!-- Добавляем input для загрузки файла -->
-            <input type="file" id="fileInput" style="display: none;" accept="image/*"
-                   onchange="handleFileChange(event)">
+        <div class="col-12">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h3 class="section-title">
+                        <i class="fas fa-tags me-2"></i>Категории услуг
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div id="categories" class="categories-container"></div>
+                    <div class="directions-container mt-3" id="directions"></div>
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-success btn-modern" id="saveCategoriesBtn">
+                            <i class="fas fa-save me-2"></i>Сохранить категории
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-9 profile-details" style="margin-top: 20px"> <!-- Изменил класс на col-md-9 и добавил класс для увеличения шрифта -->
-            <h1 id="name">{{name}}</h1>
-            <ul class="list-unstyled">
-                <li><strong>Телефон:</strong> <span id="phone">{{phone}}</span></li>
-                <li><strong>Возраст:</strong> <span id="age">{{age}}</span></li>
-                <li><strong>Город:</strong> <span id="city">{{town}}</span></li>
-                <li><strong>Цена:</strong> от <span id="cost">{{cost}}</span>₽</li>
-                <li><strong>Описание:</strong> <span id="description">{{description}}</span></li>
-                <li><strong id="date_sub">{{date_sub}}</strong></li>
-            </ul>
-            <div id="directions"></div>
-
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editProfileModal"
-                    onclick="fillModalFields()">Изменить
-            </button>
-        </div>
-
     </div>
-    <div style="margin-top: 20px"><h3>Категории</h3></div>
-    <div id="categories">
-
-    </div>
-    <button type="button" class="btn btn-success" id="saveCategoriesBtn">Сохранить категории</button>
 </div>
 
 <!-- Модальное окно для редактирования профиля -->
-<div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel"
-     aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editProfileModalLabel">Редактировать профиль</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content modern-modal">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold" id="editProfileModalLabel">
+                    <i class="fas fa-user-edit text-primary me-2"></i>Редактировать профиль
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-4">
+                <div id="error-message" class="alert alert-danger" style="display: none;" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span></span>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control modern-input" id="editName" name="name" required
+                                   placeholder="Фамилия Имя">
+                            <label for="editName">
+                                <i class="fas fa-user me-2"></i>Имя
+                            </label>
+                            <small id="editNameError" class="text-danger error-message" style="display: none;">
+                                Пожалуйста, заполните это поле.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="tel" class="form-control modern-input" id="editPhone" name="phone" 
+                                   pattern="^\+7\d{10}$" required placeholder="+79991234567">
+                            <label for="editPhone">
+                                <i class="fas fa-phone me-2"></i>Телефон
+                            </label>
+                            <small id="editPhoneError" class="text-danger error-message" style="display: none;">
+                                Пожалуйста, введите корректный номер телефона.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="number" class="form-control modern-input" id="editAge" required placeholder="20">
+                            <label for="editAge">
+                                <i class="fas fa-birthday-cake me-2"></i>Возраст
+                            </label>
+                            <small id="editAgeError" class="text-danger error-message" style="display: none;">
+                                Пожалуйста, введите корректный возраст.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control modern-input" id="editCity" required placeholder="Москва">
+                            <label for="editCity">
+                                <i class="fas fa-map-marker-alt me-2"></i>Город
+                            </label>
+                            <small id="editCityError" class="text-danger error-message" style="display: none;">
+                                Пожалуйста, заполните это поле.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input type="number" class="form-control modern-input" id="editCost" required placeholder="30000">
+                            <label for="editCost">
+                                <i class="fas fa-ruble-sign me-2"></i>Цена
+                            </label>
+                            <small id="editCostErrorMaxCost" class="text-danger error-message" style="display: none;">
+                                Максимальная цена - 10000000.
+                            </small>
+                            <small id="editCostErrorMinCost" class="text-danger error-message" style="display: none;">
+                                Минимальная цена - 15000.
+                            </small>
+                            <small id="editCostErrorUncorrect" class="text-danger error-message" style="display: none;">
+                                Некорректная цена.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <textarea class="form-control modern-input" id="editDescription" name="description" 
+                                      maxlength="500" required placeholder="Описание профиля" style="height: 120px"></textarea>
+                            <label for="editDescription">
+                                <i class="fas fa-align-left me-2"></i>Описание
+                            </label>
+                            <small id="editDescriptionError" class="text-danger error-message" style="display: none;">
+                                Пожалуйста, заполните это поле (максимум 500 символов).
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Отмена
                 </button>
-            </div>
-            <div class="modal-body">
-                <div id="error-message" class="alert alert-danger" style="display: none;"></div>
-                <div class="form-group">
-                    <label for="editName">Имя</label>
-                    <input type="text" class="form-control" id="editName" name="name" required
-                           placeholder="Фамилия Имя">
-                    <small id="editNameError" class="text-danger" style="display: none;">Пожалуйста, заполните это
-                        поле.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editPhone">Телефон</label>
-                    <input type="tel" class="form-control" id="editPhone" name="phone" pattern="^\+7\d{10}$" required
-                           placeholder="+79991234567">
-                    <small id="editPhoneError" class="text-danger" style="display: none;">Пожалуйста, введите корректный
-                        номер телефона.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editAge">Возраст</label>
-                    <input type="number" class="form-control" id="editAge" required placeholder="20">
-                    <small id="editAgeError" class="text-danger" style="display: none;">Пожалуйста, введите корректный
-                        возраст.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editCity">Город</label>
-                    <input type="text" class="form-control" id="editCity" required placeholder="Москва">
-                    <small id="editCityError" class="text-danger" style="display: none;">Пожалуйста, заполните это
-                        поле.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editCost">Цена</label>
-                    <input type="number" class="form-control" id="editCost" required placeholder="30000">
-                    <small id="editCostErrorMaxCost" class="text-danger" style="display: none;">Максимальная цена -
-                        10000000.</small>
-                    <small id="editCostErrorMinCost" class="text-danger" style="display: none;">Минимальная цена -
-                        15000.</small>
-                    <small id="editCostErrorUncorrect" class="text-danger" style="display: none;">Некорректная
-                        цена.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editDescription">Описание</label> <!-- Новое поле для описания -->
-                    <textarea class="form-control" id="editDescription" name="description" maxlength="500" required
-                              placeholder="Описание профиля"></textarea>
-                    <small id="editDescriptionError" class="text-danger" style="display: none;">Пожалуйста, заполните
-                        это поле (максимум 500 символов).</small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="saveChangesBtn">Сохранить изменения</button>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">
+                    <i class="fas fa-save me-2"></i>Сохранить изменения
+                </button>
             </div>
         </div>
     </div>
 </div>
-<!-- Подключаем jQuery (необходим для работы Bootstrap JS) -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<!-- Подключаем Popper.js (необходим для работы Bootstrap JS) -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-<!-- Подключаем Bootstrap JS (необходим для работы Bootstrap JS) -->
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
+<!-- Подключаем Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Подключаем jQuery для совместимости -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Telegram Web App API -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+<!-- Основной скрипт -->
 <script src="templates/script.js"></script>
 
 </body>

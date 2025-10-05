@@ -120,7 +120,8 @@ async def no_acc(request: Request):
     return templates.TemplateResponse("no_acc.html", {
         "request": request,
         "button_i_am": prof_data.get("button_i_am", "Я специалист"),
-        "prof": prof_type
+        "prof": prof_type,
+        "bot_url": prof_data.get("bot_url", "rynoksmm_bot")
     })
 
 

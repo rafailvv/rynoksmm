@@ -9,7 +9,8 @@
     "ai_name": "НейроSMM 🤖",
     "ai_exit": "Выйти из НейроSMM ❌",
     "ai_exit_message": "Вы вышли из НейроSMM",
-    "ai_requests_description": "Запросов к НейроСММ"
+    "ai_requests_description": "Запросов к НейроСММ",
+    "bot_url": "rynoksmm_bot"
   },
   "massage": {
     "title": "Рынок Массажа",
@@ -21,6 +22,7 @@
     "ai_name": "НейроМассаж 🤖",
     "ai_exit": "Выйти из НейроМассаж ❌",
     "ai_exit_message": "Вы вышли из НейроМассаж",
-    "ai_requests_description": "Запросов к НейроМассаж"
+    "ai_requests_description": "Запросов к НейроМассаж",
+    "bot_url": "rynokmassage_bot"
   }
 }
