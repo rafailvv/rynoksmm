@@ -4,6 +4,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 from Database.session import Base
 
+from datetime import datetime
+
+
 
 # Base = declarative_base()
 
@@ -52,6 +55,7 @@ class Users(Base):
     payments = relationship('Payments', back_populates='user')
     smm = relationship('Smm', uselist=False, back_populates='user')
     contacts = relationship('Contacts', back_populates='user')
+    created_at = Column(DateTime, default=datetime.now)
 
 
 class Payments(Base):
@@ -101,7 +105,7 @@ class SubscribeNotifications(Base):
     user_id = Column(BigInteger)
 
     target_audience = relationship('TargetAudience', back_populates='subscribe_notifications')
-
+    created_at = Column(DateTime, default=datetime.now)
 
 class TargetAudienceSmm(Base):
     __tablename__ = 'target_audience_smm'

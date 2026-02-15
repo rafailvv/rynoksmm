@@ -67,3 +67,10 @@ class UsersQueries(BaseDatabase):
             )
 
             return result.first()
+
+    async def get_users_created(self, datefrom, dateto):
+        async with self.db() as session:
+            result = await session.execute(
+                select(Users).where(Users.created_at >= datefrom).where(Users.created_at <= dateto)
+            )
+            return result.scalars().all()

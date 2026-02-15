@@ -49,6 +49,12 @@ from Bot.buttons import *
 from openai import OpenAI
 
 
+def get_image_url(user_id: int) -> str:
+    """Возвращает URL изображения из S3"""
+    bucket = config.prof.prof
+    return f"https://s3.prof-tg.ru/{bucket}/images/{user_id}.jpg"
+
+
 async def pay_for_publication(user_id, duration, price):
     buttons = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Оплатить", pay=True)]]
@@ -117,18 +123,18 @@ async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=Tru
         else:
             btns = [[remove]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
-        photo = FSInputFile(os.path.join(f"API/profile/templates/images/{user_id}.jpg"))
+        photo_url = get_image_url(user_id)
         if not fl:
 
             await message.answer_photo(
-                photo,
+                photo=photo_url,
                 caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
                 reply_markup=btns,
             )
         else:
             await message.edit_media(
                 media=InputMediaPhoto(
-                    media=photo,
+                    media=photo_url,
                     caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
                 ),
                 reply_markup=btns,
@@ -173,22 +179,23 @@ async def send_notification(user_id, first_name):
                                reply_markup=btn)
 
 
-async def cut_photo(user_id, file_path):
-    photo = Image.open(f"API/profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
-    try:
-        os.remove(f"API/profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
-    except:
-        pass
+async def cut_photo(image_bytes: bytes) -> bytes:
+    """Обрезает фото до квадрата и возвращает байты"""
+    from io import BytesIO
+    
+    photo = Image.open(BytesIO(image_bytes))
     width, height = photo.size
-    pix = photo.load()
+    
     if height > width:
         photo = photo.crop((0, (height - width) // 2, width, width + (height - width) // 2))
     else:
         photo = photo.crop(((width - height) // 2, 0, height + (width - height) // 2, height))
 
     photo = photo.convert("RGB")
-
-    photo.save(f"API/profile/templates/images/{user_id}.{file_path.split('.')[-1]}")
+    
+    output = BytesIO()
+    photo.save(output, format='JPEG', quality=95)
+    return output.getvalue()
 
 
 async def change_photo(message: Message, state: FSMContext):
@@ -272,17 +279,17 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
         else:
             btns = [[buy], [prev, next]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
-        photo = FSInputFile(os.path.join(f"API/profile/templates/images/{user_id}.jpg"))
+        photo_url = get_image_url(user_id)
         if not fl:
             await message.answer_photo(
-                photo=photo,
+                photo=photo_url,
                 caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.smm.get_phone_by_user_id(user_id))}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.smm.get_tg_by_user_id(user_id))}\n💸 Цена за месяц: от {user_info[4]} руб.\n📝 Описание: {user_info[5]}""",
                 reply_markup=btns,
             )
         else:
             await message.edit_media(
                 media=InputMediaPhoto(
-                    media=photo,
+                    media=photo_url,
                     caption=f"""🙌 Имя: {user_info[0]}\n📞 Номер телефона: {(await db.smm.get_phone_by_user_id(user_id))}\n🎂Возраст: {user_info[1]}\n🏙 Город: {user_info[2]}\n💬 Телеграм: @{(await db.smm.get_tg_by_user_id(user_id))}\n💸 Цена за месяц: от {user_info[4]} руб.\n📝 Описание: {user_info[5]}""",
                 ),
                 reply_markup=btns,

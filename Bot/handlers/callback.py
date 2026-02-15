@@ -182,9 +182,9 @@ async def choose_smm(callback: CallbackQuery, state: FSMContext):
         profile = await db.smm.get_profile_by_id_str(int(data[2]))
         smm_id, name, phone, user_id, age, city, cost, photo, tg, description = profile
         await db.contacts.add_bought_contact(message.chat.id, user_id)
-        photo = FSInputFile(os.path.join(f"API/profile/templates/images/{user_id}.jpg"))
+        photo_url = get_image_url(user_id)
         await message.answer_photo(
-            photo,
+            photo=photo_url,
             caption=f"""🙌 Имя: {name}\n📞 Номер телефона: {phone}\n🎂 Возраст: {age}\n🏙 Город: {city}\n💬 Телеграм: @{tg}\n📝 Описание: {description}\n💸 Цена за месяц: от {cost} руб.""",
         )
         await bot.send_message(text="Вас добавили в избранное 👍", chat_id=int(data[2]))

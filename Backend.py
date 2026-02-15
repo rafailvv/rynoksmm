@@ -1,16 +1,20 @@
 # region Imports
 import os
 import ssl
+import mimetypes
+import aioboto3
+import random
+import json
 
 import uvicorn
-from fastapi import FastAPI, Request, APIRouter, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from Database.manager import db
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from Bot.misc.methods import cut_photo
 
@@ -27,10 +31,12 @@ from Database.session import BaseDatabase
 from sqladmin.authentication import AuthenticationBackend
 from sqladmin import Admin, ModelView
 
-import random
-import json
-
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+from prometheus_client import Counter, Histogram, Gauge
+
 # endregion
 
 app = FastAPI(
@@ -109,7 +115,8 @@ async def main_page_index(request: Request):
 
 @mainpage_router.get("/profile")
 async def main_page_router(request: Request):
-    return templates.TemplateResponse("profile.html", {"request": request})
+    prof_type = config.prof.prof
+    return templates.TemplateResponse("profile.html", {"request": request, "prof": prof_type})
 
 
 @mainpage_router.get("/no_acc")
@@ -183,6 +190,28 @@ async def update(user: User):
         user_id=user.user_id, age=user.age, phone=user.phone, fullname=user.name, cost=user.cost, town=user.town, description=user.description
     )
 
+async def upload_image(image_bytes: bytes, bucket: str, filename: str):
+    """Загружает изображение в S3"""
+    session = aioboto3.Session()
+
+    async with session.client(
+        "s3",
+        endpoint_url="http://minio:9000",
+        aws_access_key_id=config.minio.access_key,
+        aws_secret_access_key=config.minio.secret_key,
+        region_name="us-east-1",
+    ) as s3:
+        content_type = "image/jpeg"
+        extra_args = {"ContentType": content_type}
+        
+        key = f"images/{filename}"
+        await s3.put_object(Bucket=bucket, Key=key, Body=image_bytes, **extra_args)
+
+
+def get_image_url(bucket: str, filename: str) -> str:
+    """Возвращает публичный URL изображения из S3"""
+    return f"https://s3.prof-tg.ru/{bucket}/images/{filename}"
+
 
 
 @mainpage_router.post("/upload/{user_id}")
@@ -191,23 +220,30 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
         if not user_id:
             raise ValueError("User ID is not provided.")
 
-        extension = file.filename.split('.')[-1]
-
-        new_file_name = f"{user_id}.{extension}"
-        file_path = os.path.join("API/profile/templates/images", new_file_name)
-        with open(file_path, "wb") as buffer:
-            buffer.write(await file.read())
-        if extension != "jpg":
-            im = Image.open(f"{file_path}")
-            rgb_im = im.convert('RGB')
-            rgb_im.save(f"API/profile/templates/images/" + f"{user_id}.jpg")
-            try:
-                os.remove(f"{file_path}")
-            except Exception as e:
-                pass
-            new_file_name = f"{user_id}.jpg"
-        await cut_photo(user_id, new_file_name)
-        return {"filename": new_file_name}
+        # Читаем файл в память
+        file_content = await file.read()
+        
+        # Обрабатываем изображение
+        from io import BytesIO
+        im = Image.open(BytesIO(file_content))
+        rgb_im = im.convert('RGB')
+        
+        # Сохраняем во временный буфер
+        temp_buffer = BytesIO()
+        rgb_im.save(temp_buffer, format='JPEG', quality=95)
+        image_bytes = temp_buffer.getvalue()
+        
+        # Обрезаем фото до квадрата
+        image_bytes = await cut_photo(image_bytes)
+        
+        # Загружаем в S3
+        filename = f"{user_id}.jpg"
+        await upload_image(image_bytes, config.prof.prof, filename)
+        
+        # Возвращаем URL изображения
+        image_url = get_image_url(config.prof.prof, filename)
+        
+        return {"filename": filename, "url": image_url}
 
     except Exception as e:
         return {"error": str(e)}
@@ -234,6 +270,21 @@ class PaymentRequest(BaseModel):
     email: str
     req: str
 
+
+@mainpage_router.get("/users/created")
+async def get_users_created(datefrom: datetime=Query(...), dateto: datetime=Query(...)):
+    users = list(await db.users.get_users_created(datefrom, dateto))
+    users_by_day = dict()
+    for user in users:
+        day = user.created_at.strftime("%Y-%m-%d")
+        if day in users_by_day.keys():
+            users_by_day[day] += 1
+        else:
+            users_by_day[day] = 1
+    res = []
+    for k, v in users_by_day.items():
+        res.append({"date": k, "cnt": v})
+    return res
 
 @mainpage_router.post("/payment/token")
 async def get_confirmation_token(payment_request: PaymentRequest):
@@ -295,6 +346,16 @@ async def get_confirmation_token(payment_request: PaymentRequest):
     except:
         return {"result": False}
 
+# Middleware для отключения кеша
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+app.add_middleware(NoCacheMiddleware)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 app.include_router(mainpage_router)

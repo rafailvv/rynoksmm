@@ -51,6 +51,22 @@ services:
       - pg_data_massage:/var/lib/postgresql/data
     networks:
       - mynetwork
+  grafana_massage:
+    image: grafana/grafana:latest
+    container_name: grafana_massage
+    ports:
+      - "3001:3001"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - mynetwork
+
 
 volumes:
   pg_data_massage:
+  grafana_data:
+
+
+
+  

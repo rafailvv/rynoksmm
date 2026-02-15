@@ -59,61 +59,104 @@ html, body {
     transform: translateY(-2px);
 }
 
+/* PROFILE HEADER CARD:
+   overflow visible + padding-top — чтобы аватар мог аккуратно выступать и overlay не обрезался */
 .profile-header-card {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border: none;
     box-shadow: var(--shadow-xl);
+    overflow: visible; /* важно: чтобы аватар/оверлей не обрезались */
+    padding-top: 40px; /* добавляем пространство сверху */
 }
 
-/* Profile Image */
+/* Profile Image Container (FIXED) */
 .profile-image-container {
-    position: relative;
-    display: inline-block;
-    margin: 0 auto;
-}
-
-.profile-image {
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid var(--card-bg);
-    box-shadow: var(--shadow-lg);
-    transition: var(--transition);
-    cursor: pointer;
+    overflow: hidden;
+    position: relative; /* ключевое: абсолютный overlay привязан сюда */
+    display: inline-block;
+    margin: 0 auto;
+    background: transparent;
+    z-index: 12;
 }
 
+/* Image itself — всегда берёт размеры контейнера, всегда круглая */
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Hover effect on image */
 .profile-image:hover {
     transform: scale(1.05);
     box-shadow: var(--shadow-xl);
 }
 
+/* Loader overlay (shows while uploading/loading) */
+.profile-image-loader {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 13;
+    pointer-events: none;
+}
+
+/* Show loader when container has .loading */
+.profile-image-container.loading .profile-image {
+    opacity: 0.25;
+}
+.profile-image-container.loading .profile-image-loader {
+    opacity: 1;
+}
+.profile-image-container.loading .profile-image-overlay {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Overlay with camera icon and text — inset set to 6px so визуально не цепляет край */
 .profile-image-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    inset: 0;                /* <-- полностью совпадает с контейнером */
     border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: var(--transition);
+    transition: opacity 0.18s ease;
     color: white;
     font-size: 14px;
     font-weight: 500;
+    z-index: 14;
+    text-align: center;
+    padding: 0;              /* убрать внутренние отступы, чтобы не менять форму */
+    pointer-events: none;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.12);
 }
 
 .profile-image-overlay i {
-    font-size: 24px;
-    margin-bottom: 8px;
+    font-size: 22px;
+    margin-bottom: 6px;
+    display: block;
 }
 
+/* show overlay on container hover */
 .profile-image-container:hover .profile-image-overlay {
     opacity: 1;
+    pointer-events: auto;
 }
 
 /* Profile Info */
@@ -245,9 +288,65 @@ html, body {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
+/* Add extra breathing room so the save button isn't glued to edges */
+.card-body {
+    padding-bottom: 24px;
+}
+
 /* Categories */
 .categories-container {
     padding: 20px;
+}
+
+.heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.heading:hover {
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.heading label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    margin-left: 7px;
+    cursor: pointer;
+}
+
+.category-list-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    border: none;
+    font-size: 14px;
+    margin-left: 7px;
+}
+
+.category-list-button:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.category-list-button i {
+    transition: transform 0.3s ease;
 }
 
 #categories {
@@ -332,6 +431,13 @@ html, body {
     background: var(--card-bg);
 }
 
+/* Inner category lines */
+.content_ta .line {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+}
+
 /* Checkbox Styles */
 .checkbox {
     width: 24px;
@@ -344,7 +450,7 @@ html, body {
     cursor: pointer;
     transition: var(--transition);
     position: relative;
-    margin-right: 12px;
+    margin-right: 5px;
     background: var(--card-bg);
 }
 
@@ -442,7 +548,8 @@ html, body {
     height: auto;
 }
 
-/* Responsive Design */
+/* Responsive Design
+   IMPORTANT: размеры аватарки задаём контейнеру, НЕ img */
 @media (max-width: 768px) {
     .container-fluid {
         padding: 16px;
@@ -454,11 +561,6 @@ html, body {
     
     .profile-meta {
         grid-template-columns: 1fr;
-    }
-    
-    .profile-image {
-        width: 150px;
-        height: 150px;
     }
     
     .meta-item {
@@ -477,16 +579,16 @@ html, body {
     .modal-lg {
         max-width: 95%;
     }
+
+    /* Меняем только контейнер — img автоматически подстроится */
+    .profile-image-container { width: 150px; height: 150px; }
 }
 
 @media (max-width: 576px) {
+    .profile-image-container { width: 120px; height: 120px; }
+
     .profile-name {
         font-size: 1.75rem;
-    }
-    
-    .profile-image {
-        width: 120px;
-        height: 120px;
     }
     
     .description-text {
@@ -549,14 +651,318 @@ html, body {
     border: 1px solid var(--border-color);
 }
 
-/* Dark mode support (optional) */
+/* Spinner inside profile-image-loader */
+.profile-image-loader::after {
+    content: "";
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Dark mode support */
 @media (prefers-color-scheme: dark) {
     :root {
-        --light-bg: #1e293b;
-        --card-bg: #334155;
+        --light-bg: #0f172a;
+        --card-bg: #1e293b;
         --text-primary: #f1f5f9;
         --text-secondary: #cbd5e1;
-        --text-muted: #64748b;
-        --border-color: #475569;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    }
+
+    html, body {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: var(--text-primary);
+    }
+
+    .modern-body {
+        background: var(--light-bg);
+    }
+
+    .profile-header-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+
+    .card-header-modern {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+
+    .modern-modal .modal-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: var(--text-primary);
+    }
+
+    .modern-modal .modal-title {
+        color: var(--text-primary);
+    }
+
+    .modern-modal .modal-body {
+        background: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    .modern-modal .modal-footer {
+        background: var(--light-bg);
+    }
+
+    .loading-overlay {
+        background: rgba(15, 23, 42, 0.95);
+    }
+
+    .meta-item {
+        background: var(--card-bg);
+    }
+
+    .meta-item:hover {
+        background: #334155;
+    }
+
+    .price-item {
+        background: linear-gradient(135deg, #78350f, #92400e);
+        border-color: #b45309;
+    }
+
+    .price-value {
+        color: #fbbf24;
+    }
+
+    .description-text {
+        background: var(--card-bg);
+        border-left-color: var(--primary-color);
+    }
+
+    .heading {
+        background: var(--card-bg);
+    }
+
+    .heading:hover {
+        background: #334155;
+    }
+
+    .category-item {
+        background: var(--card-bg);
+    }
+
+    .category-item:hover {
+        background: #334155;
+    }
+
+    .category-header:hover {
+        background: rgba(99, 102, 241, 0.15);
+    }
+
+    .content-inner {
+        background: var(--light-bg);
+    }
+
+    .checkbox {
+        background: var(--card-bg);
+        border-color: var(--border-color);
+    }
+
+    .checkbox:hover {
+        background: rgba(99, 102, 241, 0.1);
+    }
+
+    .modern-input {
+        background: var(--card-bg);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+
+    .modern-input:focus {
+        background: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    .modern-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-floating > label {
+        color: var(--text-secondary);
+    }
+
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        color: var(--text-secondary);
+    }
+
+    /* Bootstrap modal adjustments for dark mode */
+    .modal-content {
+        background-color: var(--card-bg);
+        border-color: var(--border-color);
+    }
+
+    .modal-header {
+        border-bottom-color: var(--border-color);
+    }
+
+    .modal-footer {
+        border-top-color: var(--border-color);
+    }
+
+    .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    /* Select elements */
+    select.form-control,
+    select.modern-input {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+
+    select.form-control:focus,
+    select.modern-input:focus {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    /* Textarea */
+    textarea.modern-input {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    /* Links */
+    a {
+        color: #818cf8;
+    }
+
+    a:hover {
+        color: #a5b4fc;
+    }
+
+    /* Bootstrap text utilities */
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+
+    .text-primary {
+        color: var(--primary-color) !important;
+    }
+
+    .text-success {
+        color: var(--success-color) !important;
+    }
+
+    .text-danger {
+        color: var(--danger-color) !important;
+    }
+
+    .text-warning {
+        color: var(--warning-color) !important;
+    }
+
+    .text-info {
+        color: var(--info-color) !important;
+    }
+
+    /* Bootstrap buttons */
+    .btn-outline-secondary {
+        color: var(--text-secondary);
+        border-color: var(--border-color);
+        background-color: transparent;
+    }
+
+    .btn-outline-secondary:hover {
+        color: var(--text-primary);
+        background-color: var(--border-color);
+        border-color: var(--border-color);
+    }
+
+    /* Bootstrap alerts */
+    .alert {
+        background-color: var(--card-bg);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .alert-danger {
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: var(--danger-color);
+        color: #fca5a5;
+    }
+
+    /* Form controls */
+    .form-control {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+
+    .form-control:focus {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        border-color: var(--primary-color);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    /* Small text elements */
+    small {
+        color: var(--text-secondary);
+    }
+
+    /* Bootstrap badges if used */
+    .badge {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    /* Container adjustments */
+    .container-fluid {
+        background-color: transparent;
+    }
+
+    /* Ensure all text is readable */
+    body p, body h1, body h2, body h3, body h4, body h5, body h6 {
+        color: var(--text-primary);
+    }
+
+    /* Icon colors adjustment for better visibility */
+    .fa-lock.text-warning {
+        color: var(--warning-color) !important;
+    }
+
+    .fa-user-edit.text-primary {
+        color: var(--primary-color) !important;
+    }
+
+    /* Image border adjustment */
+    .profile-image {
+        border-color: var(--card-bg);
+    }
+
+    /* Overlay text remains white for contrast */
+    .profile-image-overlay {
+        color: white;
+    }
+
+    /* Ensure modal text is readable */
+    .modal-body p {
+        color: var(--text-primary);
+    }
+
+    /* Category name in modal */
+    #categoryName {
+        color: var(--primary-color) !important;
     }
 }

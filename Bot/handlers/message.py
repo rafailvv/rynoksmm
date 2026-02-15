@@ -130,6 +130,14 @@ async def delete_smm(message: Message):
     await message.answer(text="Ваш профиль был удален")
 
 
+@message_router.message(Command("test"))
+async def test(message: Message):
+    import random
+    
+    rnd = random.randint(100000, 999999)
+    await message.answer(text=f"rnd: {rnd}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="test", web_app=WebAppInfo(url=f"https://smm.prof-tg.ru/profile?rnd={rnd}"))]]))
+
+
 @message_router.message(F.text.in_({"/start", "Меню ☰"}))
 async def start(message: Message):
     # all = await db.lst_of_users()
@@ -365,19 +373,31 @@ async def town(message: Message, state: FSMContext, fl=False, town=""):
 @message_router.message(st.photo)
 async def photo(message: Message, state: FSMContext):
     if message.content_type in ["photo"]:
+        from io import BytesIO
+        
         file_id = message.photo[-1].file_id if message.content_type == "photo" else message.animation.file_id
         file = await bot.get_file(file_id)
         file_path = file.file_path
-        await bot.download_file(file_path, f"API/profile/templates/images/{message.chat.id}.{file_path.split('.')[-1]}")
+        
+        # Скачиваем файл в память
+        file_buffer = BytesIO()
+        await bot.download_file(file_path, destination=file_buffer)
+        file_buffer.seek(0)
+        image_bytes = file_buffer.read()
+        
+        # Обрезаем фото
+        cropped_bytes = await cut_photo(image_bytes)
+        #TODO Сохранение обрезанного фото в S3 только после того как пользователь нажал на кнопку "Применить"
         await db.smm.add_photo(message.chat.id,
                                message.photo[
                                    -1].file_id if message.content_type == "photo" else message.animation.file_id)
-        await cut_photo(message.chat.id, file_path)
         btns = [[InlineKeyboardButton(text="Изменить", callback_data="photo|change"),
                  InlineKeyboardButton(text="Применить", callback_data="photo|accept")]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
-        document = FSInputFile(f"API/profile/templates/images/{message.chat.id}.{file_path.split('.')[-1]}")
-        await message.answer_photo(photo=document, caption="Ваша фотография", reply_markup=btns)
+        
+        # Создаем InputFile из байтов и отправляем
+        photo_file = InputFile(BytesIO(cropped_bytes), filename=f"{message.chat.id}.jpg")
+        await message.answer_photo(photo=photo_file, caption="Ваша фотография", reply_markup=btns)
     else:
         await message.answer("❌ Неверный формат, отправьте фотографию")
 

@@ -50,6 +50,19 @@ services:
       - pg_data_smm:/var/lib/postgresql/data
     networks:
       - mynetwork
+    
+  grafana_smm:
+    image: grafana/grafana:latest
+    container_name: grafana_smm
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - mynetwork
+  
 
 volumes:
   pg_data_smm:
+  grafana_data:

@@ -49,6 +49,13 @@ class ProfConfig:
     i_looking: str
     prof: str
 
+
+@dataclass
+class MinioConfig:
+    access_key: str
+    secret_key: str
+    
+
 @dataclass
 class Config:
     tg_bot: TgBotConfig
@@ -58,6 +65,7 @@ class Config:
     gpt: GPTConfig
     mistral: Mistral
     prof: ProfConfig
+    minio: MinioConfig
 
 
 def load_config(path: str = None):
@@ -78,7 +86,8 @@ def load_config(path: str = None):
     
     env = Env()
     env.read_env(path)
-
+    minio = Env()
+    minio.read_env("minio.env")
     return Config(
         tg_bot=TgBotConfig(
             token=env.str("BOT_TOKEN"), pay_token=env.str("PAY_TOKEN"),
@@ -97,9 +106,10 @@ def load_config(path: str = None):
         ),
         gpt=GPTConfig(api_key=env.str("GPT_API_KEY"), asst_key=env.str("GPT_ASST_KEY")),
         mistral=Mistral(api_key=env.str("MISTRAL_API_KEY"), model=env.str("MISTRAL_MODEL")),
-        prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF"))
+        prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF")),
+        minio=MinioConfig(access_key=minio.str("MINIO_ROOT_USER"), secret_key=minio.str("MINIO_ROOT_PASSWORD"))
     )
 
 
-# Загружаем конфигурацию один раз при импорте модуля
+
 config = load_config()

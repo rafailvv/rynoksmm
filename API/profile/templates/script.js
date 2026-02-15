@@ -1,4 +1,15 @@
 var user_id;
+
+
+// Функция для получения URL изображения из S3
+function getImageUrl(filename) {
+  return `https://s3.prof-tg.ru/${prof_bucket}/images/${filename}?nocache=${new Date().getTime()}`;
+}
+
+// Функция для получения URL системных изображений из bucket "system"
+function getSystemImageUrl(filename) {
+  return `https://s3.prof-tg.ru/system/images/${filename}?nocache=${new Date().getTime()}`;
+}
 // Функция для заполнения полей модального окна текущими данными
 function fillModalFields() {
   var name = document.getElementById('name').textContent;
@@ -145,7 +156,7 @@ function fillInitialFields() {
         document.getElementById('age').textContent = data.age;
         document.getElementById('city').textContent = data.town;
         document.getElementById('cost').textContent = data.cost;
-        document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+        document.getElementById('photo').src = getImageUrl(`${user_id}.jpg`);
         document.getElementById('description').textContent = data.description;
 
         // Шаг 1: Преобразование строки в объект Date
@@ -194,7 +205,7 @@ function fillInitialFields() {
             container.classList.add('container');
 
             // Создаем заголовок и его содержимое
-            var heading = document.createElement('div');
+            const heading = document.createElement('div');
             heading.classList.add('heading');
 
             if (k in data.ta) {
@@ -208,7 +219,7 @@ function fillInitialFields() {
             var label = document.createElement('label');
             label.textContent = k;
 
-            var button = document.createElement('button');
+            const button = document.createElement('button');
             button.classList.add('category-list-button');
 
             var tick = document.createElement('i');
@@ -221,8 +232,15 @@ function fillInitialFields() {
             heading.appendChild(label);
             heading.appendChild(button);
 
-            button.onclick = function() {
+            button.onclick = function(e) {
+                // Предотвращаем всплытие, чтобы клик по кнопке не дублировал клик по heading
+                e.stopPropagation();
                 toggleContent(this);
+            };
+
+            // Клик по всему заголовку раскрывает/сворачивает категорию
+            heading.onclick = function() {
+                toggleContent(button);
             };
 
             // Создаем содержимое
@@ -238,7 +256,6 @@ function fillInitialFields() {
                 line.classList.add('line')
 
                 var label = document.createElement('label');
-                label.style = 'margin-right: 10px'
                 label.setAttribute('for', 'checkbox' + i);
                 label.setAttribute('name', 'checkbox' + i);
                 label.textContent = v;
@@ -309,42 +326,62 @@ function changePhoto() {
 
 function handleFileChange(event) {
   const file = event.target.files[0];
+  if (!file) return;
+
+  const container = document.querySelector('.profile-image-container');
+  const img = document.getElementById('photo');
+
   console.log('File uploaded:', file);
-  if (file) {
-    // Получаем расширение файла
-    var extension = file.name.split('.').pop();
 
-    // Создаем новое имя файла с user_id и оригинальным расширением
-    var newFileName = `${user_id}.${extension}`;
+  // включаем лоадер сразу
+  container.classList.add('loading');
 
+  // расширение
+  const extension = file.name.split('.').pop();
+  const newFileName = `${user_id}.${extension}`;
 
-    // Создаем новый объект File с переименованным именем
-    var renamedFile = new File([file], newFileName, { type: file.type });
+  const renamedFile = new File([file], newFileName, { type: file.type });
 
-    // Создаем объект FormData для передачи файлов
-    var formData = new FormData();
+  const formData = new FormData();
+  formData.append('file', renamedFile);
 
-    formData.append('file', file);
+  const uploadUrl = `/upload/${user_id}`;
 
-    // URL вашего FastAPI сервера
-        var uploadUrl = `/upload/${user_id}`;
-//    const uploadUrl = 'http://127.0.0.1:80/upload';
-    console.log(formData);
-
-    // Отправляем запрос на сервер
-    fetch(uploadUrl, {
+  fetch(uploadUrl, {
       method: 'POST',
       body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
+  })
+  .then(response => response.json())
+  .then(data => {
       console.log('Success:', data);
-      // Обновляем изображение на странице
-      document.getElementById('photo').src = `/templates/images/${user_id}.jpg`; // предполагая, что сервер возвращает URL загруженного изображения
-      location.reload();
-    })
-    .catch(error => console.error('Error:', error));
-  }
+
+      // загружаем картинку только когда она реально доступна
+      const imageUrl = data.url
+          ? data.url + '?nocache=' + Date.now()
+          : getImageUrl(`${user_id}.jpg`);
+
+      const tempImage = new Image();
+
+      tempImage.onload = () => {
+          img.src = imageUrl;
+
+          // маленькая пауза для плавности
+          setTimeout(() => {
+              container.classList.remove('loading');
+          }, 150);
+      };
+
+      tempImage.onerror = () => {
+          console.error('Image load error');
+          container.classList.remove('loading');
+      };
+
+      tempImage.src = imageUrl;
+  })
+  .catch(error => {
+      console.error('Error:', error);
+      container.classList.remove('loading');
+  });
 }
 
 
@@ -410,7 +447,7 @@ window.addEventListener("DOMContentLoaded", function (){
 //    user_id = 5283298935;
     const loadingOverlay = document.getElementById("loading");
     console.log(user_id);
-    document.getElementById('photo').src = `/templates/images/${user_id}.jpg`;
+    document.getElementById('photo').src = getImageUrl(`${user_id}.jpg`);
     fillInitialFields().then(() => {
         loadingOverlay.style.display = "none";
     }).catch(error => {
