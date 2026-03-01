@@ -54,6 +54,8 @@ services:
   grafana_massage:
     image: grafana/grafana:latest
     container_name: grafana_massage
+    environment:
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
     ports:
       - "3001:3001"
     volumes:

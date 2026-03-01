@@ -56,21 +56,26 @@ minio-up:
 	docker-compose -f docker-compose.minio.yml up -d minio
 
 restart:
-	docker-compose $(DC_FILES) down
-	docker-compose $(DC_FILES) build
-	docker-compose $(DC_FILES) up -d
+	@sudo -k
+	@sudo -v
+	sudo docker-compose $(DC_FILES) down
+	sudo docker-compose $(DC_FILES) build
+	sudo docker-compose $(DC_FILES) up -d
+
 
 minio-restart:
-	docker-compose -f docker-compose.minio.yml down minio
-	docker-compose -f docker-compose.minio.yml build minio
-	docker-compose -f docker-compose.minio.yml up -d minio
+	sudo docker-compose -f docker-compose.minio.yml down minio
+	sudo docker-compose -f docker-compose.minio.yml build minio
+	sudo docker-compose -f docker-compose.minio.yml up -d minio
 
 nginx-restart:
-	docker-compose -f docker-compose.nginx.yml down nginx
-	docker-compose -f docker-compose.nginx.yml build nginx
-	docker-compose -f docker-compose.nginx.yml up -d nginx
+	@sudo -k
+	@sudo -v
+	sudo docker-compose -f docker-compose.nginx.yml down nginx
+	sudo docker-compose -f docker-compose.nginx.yml build nginx
+	sudo docker-compose -f docker-compose.nginx.yml up -d nginx
 
 restart-nf:
-	docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm
-	docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm
-	docker-compose -f docker-compose.nginx.yml up -d nginx
+	sudo docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm
+	sudo docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm
+	sudo docker-compose -f docker-compose.nginx.yml up -d nginx

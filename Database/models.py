@@ -52,9 +52,9 @@ class Users(Base):
     id = Column(BigInteger, primary_key=True)
     username = Column(Text)
 
-    payments = relationship('Payments', back_populates='user')
-    smm = relationship('Smm', uselist=False, back_populates='user')
-    contacts = relationship('Contacts', back_populates='user')
+    payments = relationship('Payments', back_populates='user', passive_deletes=True)
+    smm = relationship('Smm', uselist=False, back_populates='user', passive_deletes=True)
+    contacts = relationship('Contacts', back_populates='user', passive_deletes=True)
     created_at = Column(DateTime, default=datetime.now)
 
 
@@ -63,7 +63,7 @@ class Payments(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
                 primary_key=True)
-    user_id = Column(ForeignKey('users.id'), nullable=False)
+    user_id = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     start_time = Column(DateTime, nullable=False)
     finish_time = Column(DateTime, nullable=False)
     cost = Column(BigInteger, nullable=False)
@@ -77,7 +77,7 @@ class Smm(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
                 primary_key=True)
-    user_id = Column(ForeignKey('users.id'), nullable=False, unique=True)
+    user_id = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
     full_name = Column(Text)
     phone = Column(Text)
     age = Column(Integer)
@@ -90,8 +90,8 @@ class Smm(Base):
     promos = Column(Text)
 
     user = relationship('Users', back_populates='smm')
-    cases = relationship('Cases', back_populates='smm')
-    contacts = relationship('Contacts', back_populates='smm')
+    cases = relationship('Cases', back_populates='smm', passive_deletes=True)
+    contacts = relationship('Contacts', back_populates='smm', passive_deletes=True)
 
 
 class SubscribeNotifications(Base):
@@ -123,7 +123,7 @@ class Cases(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
                 primary_key=True)
-    smm_id = Column(ForeignKey('smm.id'), nullable=False)
+    smm_id = Column(ForeignKey('smm.id', ondelete='CASCADE'), nullable=False)
     name = Column(Text, nullable=False)
     link = Column(Text, nullable=False)
 
@@ -135,7 +135,7 @@ class Contacts(Base):
 
     id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
                 primary_key=True)
-    user_id = Column(ForeignKey('users.id'), nullable=False)
+    user_id = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     smm_id = Column(ForeignKey('smm.user_id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     smm = relationship('Smm', back_populates='contacts')

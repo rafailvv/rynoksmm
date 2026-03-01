@@ -15,7 +15,7 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from Database.manager import db
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from Bot.misc.methods import cut_photo
 
 from PIL import Image
@@ -273,18 +273,35 @@ class PaymentRequest(BaseModel):
 
 @mainpage_router.get("/users/created")
 async def get_users_created(datefrom: datetime=Query(...), dateto: datetime=Query(...)):
+    if datefrom.tzinfo is not None:
+        datefrom = datefrom.astimezone(timezone.utc).replace(tzinfo=None)
+    if dateto.tzinfo is not None:
+        dateto = dateto.astimezone(timezone.utc).replace(tzinfo=None)
+
+    if datefrom > dateto:
+        raise HTTPException(status_code=400, detail="datefrom must be less than or equal to dateto")
+
     users = list(await db.users.get_users_created(datefrom, dateto))
-    users_by_day = dict()
+    users_by_day = {}
     for user in users:
         day = user.created_at.strftime("%Y-%m-%d")
-        if day in users_by_day.keys():
-            users_by_day[day] += 1
-        else:
-            users_by_day[day] = 1
+        users_by_day[day] = users_by_day.get(day, 0) + 1
+
     res = []
-    for k, v in users_by_day.items():
-        res.append({"date": k, "cnt": v})
-    return res
+    current_day = datefrom.date()
+    end_day = dateto.date()
+    while current_day <= end_day:
+        day = current_day.strftime("%Y-%m-%d")
+        res.append({"date": day, "cnt": users_by_day.get(day, 0)})
+        current_day += timedelta(days=1)
+    daily_data = res
+    return [{"time": datetime.strptime(item["date"], "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000, "value": item["cnt"]} for item in daily_data]
+
+
+# @mainpage_router.get("/users/created/timeseries")
+# async def get_users_created_timeseries(datefrom: datetime=Query(...), dateto: datetime=Query(...)):
+#     daily_data = await get_users_created(datefrom=datefrom, dateto=dateto)
+#     return [{"time": f"{item['date']}T00:00:00Z", "value": item["cnt"]} for item in daily_data]
 
 @mainpage_router.post("/payment/token")
 async def get_confirmation_token(payment_request: PaymentRequest):

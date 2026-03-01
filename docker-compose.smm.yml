@@ -54,6 +54,8 @@ services:
   grafana_smm:
     image: grafana/grafana:latest
     container_name: grafana_smm
+    environment:
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
     ports:
       - "3000:3000"
     volumes:
