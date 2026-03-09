@@ -240,6 +240,7 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
         filename = f"{user_id}.jpg"
         await upload_image(image_bytes, config.prof.prof, filename)
         
+        
         # Возвращаем URL изображения
         image_url = get_image_url(config.prof.prof, filename)
         

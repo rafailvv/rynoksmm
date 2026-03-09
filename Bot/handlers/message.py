@@ -21,7 +21,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     PreCheckoutQuery,
-    InputFile,
+    BufferedInputFile,
     FSInputFile,
     CallbackQuery,
     InputMediaPhoto,
@@ -59,6 +59,8 @@ from yookassa.domain.response import PaymentResponse
 from aiogram.exceptions import TelegramForbiddenError
 
 from openai import OpenAI
+
+from Bot.misc import constants
 
 message_router = Router()
 
@@ -353,9 +355,11 @@ async def age(message: Message, state: FSMContext):
 
 @message_router.message(st.town)
 async def town(message: Message, state: FSMContext, fl=False, town=""):
-    url = "https://ru.wikipedia.org/wiki/%D0%A1%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%B2_%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D0%B8"
-    df = pd.read_html(url)[0]
-    cities = df["Город"].to_list()
+    # url = "https://ru.wikipedia.org/wiki/Список_городов_России"
+    # df = pd.read_html(url)[0]
+    # cities = df["Город"].to_list()
+    
+    cities = constants.cities
     if fl or message.text.capitalize() in cities:
         if town == "":
             await db.smm.add_town(message.chat.id, message.text.capitalize())
@@ -395,8 +399,8 @@ async def photo(message: Message, state: FSMContext):
                  InlineKeyboardButton(text="Применить", callback_data="photo|accept")]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
         
-        # Создаем InputFile из байтов и отправляем
-        photo_file = InputFile(BytesIO(cropped_bytes), filename=f"{message.chat.id}.jpg")
+        # Создаем BufferedInputFile из байтов и отправляем
+        photo_file = BufferedInputFile(cropped_bytes, filename=f"{message.chat.id}.jpg")
         await message.answer_photo(photo=photo_file, caption="Ваша фотография", reply_markup=btns)
     else:
         await message.answer("❌ Неверный формат, отправьте фотографию")
@@ -477,13 +481,26 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
     user_id = message.chat.id
 
     if promo is None:
-        promo = message.text
+        promo = (message.text or "").strip()
+    else:
+        promo = str(promo).strip()
     promo = promo.lower()
     tas = await db.ta.get_ta_by_user_id(user_id)
-    smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
-        user_id)
-    if None in [full_name, phone, age, town, cost, description, date_sub] or len(
-            tas) == 0 or f"{user_id}.jpg" not in os.listdir("API/profile/templates/images"):
+    profile = await db.smm.get_profile_by_id(user_id)
+    if profile is None:
+        btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
+               [KeyboardButton(text="Избранные контакты 🤝")],
+               [KeyboardButton(text="Оформить подписку 🎟")]]
+        if message.chat.id in config.tg_bot.admins:
+            btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
+        btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
+        await message.answer("Пожалуйста, заполните профиль, нажав на кнопку 'Профиль', и повторите попытку",
+                             reply_markup=btn)
+        return
+
+    smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = profile
+    has_s3_photo = await is_s3_image_exists(user_id)
+    if None in [full_name, phone, age, town, cost, description] or len(tas) == 0 or not has_s3_photo:
         btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
                [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]
@@ -530,16 +547,21 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         )
     else:
         promos = await db.smm.get_all_promos()
-        promo_usage = promos[promo][0]
-        promo_users = promos[promo][1].split(",")
-        promo_duration = promos[promo][2]
-        promo_text = promos[promo][3]
-        users_promos = (await db.smm.get_users_promos(user_id))[0][0]
-        if users_promos is not None:
-            users_promos = users_promos.split(",")
-        else:
-            users_promos = []
-        if promo in promos.keys():
+        promo_data = promos.get(promo)
+        if promo_data is not None:
+            promo_usage = promo_data[0]
+            promo_users_raw = promo_data[1] or "-"
+            promo_duration = promo_data[2]
+            promo_text = promo_data[3]
+            promo_users = [p.strip() for p in promo_users_raw.split(",") if p.strip()] or ["-"]
+
+            users_promos_res = await db.smm.get_users_promos(user_id)
+            users_promos = users_promos_res[0][0] if users_promos_res else None
+            if users_promos is not None:
+                users_promos = [p.strip() for p in users_promos.split(",") if p.strip()]
+            else:
+                users_promos = []
+
             if (promo_usage > 0 or promo_usage < -100000) and promo not in users_promos and (
                     str(user_id) in promo_users or promo_users[0] == '-'):
                 btn = [

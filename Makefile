@@ -56,12 +56,15 @@ minio-up:
 	docker-compose -f docker-compose.minio.yml up -d minio
 
 restart:
-	@sudo -k
-	@sudo -v
 	sudo docker-compose $(DC_FILES) down
 	sudo docker-compose $(DC_FILES) build
 	sudo docker-compose $(DC_FILES) up -d
 
+
+bot-restart:
+	sudo docker-compose $(DC_FILES) down bot_massage bot_smm
+	sudo docker-compose $(DC_FILES) build bot_massage bot_smm
+	sudo docker-compose $(DC_FILES) up -d bot_massage bot_smm
 
 minio-restart:
 	sudo docker-compose -f docker-compose.minio.yml down minio
@@ -69,8 +72,6 @@ minio-restart:
 	sudo docker-compose -f docker-compose.minio.yml up -d minio
 
 nginx-restart:
-	@sudo -k
-	@sudo -v
 	sudo docker-compose -f docker-compose.nginx.yml down nginx
 	sudo docker-compose -f docker-compose.nginx.yml build nginx
 	sudo docker-compose -f docker-compose.nginx.yml up -d nginx

@@ -1,22 +1,21 @@
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from Backend import app
 from Database.session import Base, get_db  # где у вас Base = declarative_base()
-import asyncio
 from Bot.config import config
 
 # Создание тестовой in-memory БД
 DATABASE_URL = f"postgresql+asyncpg://{config.db.user}:{config.db.password}@{config.db.host}/{config.db.database}"
 
-engine = create_async_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_async_engine(DATABASE_URL)
 TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # Фикстура БД-сессии
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def db_session():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -39,7 +38,8 @@ def override_get_db(db_session):
 # Асинхронный клиент FastAPI
 @pytest_asyncio.fixture()
 async def async_client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
@@ -84,6 +84,3 @@ async def test_pay_token(async_client):
     assert response['result']
     assert response['id'] is not None
     assert response['confirmation_token'] is not None
-
-
-

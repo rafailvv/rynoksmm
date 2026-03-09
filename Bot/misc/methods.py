@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery
 import asyncio
 import os
 import uuid
+import aiohttp
 
 import PIL.ImageOps
 from aiogram import Bot, Dispatcher, F, types
@@ -53,6 +54,23 @@ def get_image_url(user_id: int) -> str:
     """Возвращает URL изображения из S3"""
     bucket = config.prof.prof
     return f"https://s3.prof-tg.ru/{bucket}/images/{user_id}.jpg"
+
+
+async def is_s3_image_exists(user_id: int) -> bool:
+    """Проверяет, доступно ли фото профиля в S3."""
+    url = get_image_url(user_id)
+    timeout = aiohttp.ClientTimeout(total=5)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.head(url, allow_redirects=True) as response:
+                if response.status == 200:
+                    return True
+                if response.status == 405:
+                    async with session.get(url, headers={"Range": "bytes=0-0"}) as get_response:
+                        return get_response.status in (200, 206)
+                return False
+    except Exception:
+        return False
 
 
 async def pay_for_publication(user_id, duration, price):
@@ -166,8 +184,9 @@ async def send_notification(user_id, first_name):
     tas = await db.ta.get_ta_by_user_id(user_id)
     smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = await db.smm.get_profile_by_id(
         user_id)
+    has_s3_photo = await is_s3_image_exists(user_id)
     if None in [full_name, phone, age, town, cost, description, date_sub] or len(
-            tas) == 0 or f"{user_id}.jpg" not in os.listdir("API/profile/templates/images"):
+            tas) == 0 or not has_s3_photo:
         btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
                [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]
