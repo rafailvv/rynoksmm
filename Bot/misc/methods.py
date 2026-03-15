@@ -261,7 +261,7 @@ async def search_by_cost(message: Message, state: FSMContext, dict_of_smm):
     await state.update_data(cost_d=dict_of_smm)
 
 
-async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=False):
+async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=False, show_found=True):
     state_data = await state.get_data()
     n = len(dict_of_smm)
     if n == 0:
@@ -313,16 +313,16 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
                 ),
                 reply_markup=btns,
             )
-        if n == 1 and not fl:
+        if show_found and n == 1 and not fl:
             await message.answer(text="🚀 Найден 1 специалист")
-        elif n > 0 and not fl:
+        elif show_found and n > 0 and not fl:
             if n % 10 == 1 and n % 100 != 11:
                 await message.answer(text=f"🚀 Найдено {n} специалист")
             elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
                 await message.answer(text=f"🚀 Найдено {n} специалиста")
             else:
                 await message.answer(text=f"🚀 Найдено {n} специалистов")
-        elif not fl:
+        elif show_found and not fl:
             await message.answer(
                 text=f"🚀 Найдено {n} специалист{'а' if n % 10 == 1 and n % 100 != 11 else 'ов'}"
             )
