@@ -54,11 +54,11 @@ class UsersQueries(BaseDatabase):
 
     async def is_answered(self, request, user_id):
         async with self.db() as session:
-            support_request = await session.execute(
+            result = await session.execute(
                 select(Support.answered).where(Support.request == request).where(Support.user_id == user_id)
             )
-
-            return support_request == 1
+            answered = result.scalar_one_or_none()
+            return answered == 1
 
     async def get_purchase_by_payment_id(self, payment_id):
         async with self.db() as session:

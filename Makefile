@@ -1,5 +1,6 @@
 DC_FILES = -f docker-compose.smm.yml \
-           -f docker-compose.massage.yml
+           -f docker-compose.massage.yml \
+           -f docker-compose.photo.yml
            
 
 
@@ -16,7 +17,7 @@ down:
 	docker-compose -f docker-compose.nginx.yml down nginx
 
 logs:
-	docker-compose $(DC_FILES) -f docker-compose.nginx.yml logs -f $(NAME)
+	docker-compose $(DC_FILES) -f docker-compose.nginx.yml logs -f --tail 300 $(NAME) 
 
 ps:
 	docker-compose $(DC_FILES) -f docker-compose.nginx.yml ps
@@ -32,6 +33,9 @@ smm:
 
 massage:
 	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_massage web_massage,bot_massage web_massage redis_massage db_massage)
+
+photo:
+	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_photo web_photo,bot_photo web_photo redis_photo db_photo)
 
 
 nginx:
@@ -62,9 +66,9 @@ restart:
 
 
 bot-restart:
-	sudo docker-compose $(DC_FILES) down bot_massage bot_smm
-	sudo docker-compose $(DC_FILES) build bot_massage bot_smm
-	sudo docker-compose $(DC_FILES) up -d bot_massage bot_smm
+	sudo docker-compose $(DC_FILES) down bot_massage bot_smm bot_photo
+	sudo docker-compose $(DC_FILES) build bot_massage bot_smm bot_photo
+	sudo docker-compose $(DC_FILES) up -d bot_massage bot_smm bot_photo
 
 minio-restart:
 	sudo docker-compose -f docker-compose.minio.yml down minio
@@ -77,6 +81,17 @@ nginx-restart:
 	sudo docker-compose -f docker-compose.nginx.yml up -d nginx
 
 restart-nf:
-	sudo docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm
-	sudo docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm
+	sudo docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm bot_photo web_photo
+	sudo docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm bot_photo web_photo
 	sudo docker-compose -f docker-compose.nginx.yml up -d nginx
+
+
+
+smm-logs:
+	docker-compose -f docker-compose.smm.yml logs -f --tail 300 bot_smm web_smm
+
+massage-logs:
+	docker-compose -f docker-compose.massage.yml logs -f --tail 300 bot_massage web_massage
+
+photo-logs:
+	docker-compose -f docker-compose.photo.yml logs -f --tail 300 bot_photo web_photo

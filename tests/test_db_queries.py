@@ -7,19 +7,23 @@ from Database.queries.users import UsersQueries
 
 
 class FakeResult:
-    def __init__(self, fetchall_data=None, scalar_data=None, first_data=None, rowcount=0, scalars_data=None, fetchone_data=None):
+    def __init__(self, fetchall_data=None, scalar_data=None, first_data=None, rowcount=0, scalars_data=None, fetchone_data=None, scalar_one_or_none_data=None):
         self._fetchall_data = fetchall_data if fetchall_data is not None else []
         self._scalar_data = scalar_data
         self._first_data = first_data
         self.rowcount = rowcount
         self._scalars_data = scalars_data if scalars_data is not None else []
         self._fetchone_data = fetchone_data
+        self._scalar_one_or_none_data = scalar_one_or_none_data
 
     def fetchall(self):
         return self._fetchall_data
 
     def scalar(self):
         return self._scalar_data
+
+    def scalar_one_or_none(self):
+        return self._scalar_one_or_none_data
 
     def first(self):
         return self._first_data
@@ -116,11 +120,11 @@ async def test_users_support_flow():
 
 @pytest.mark.asyncio
 async def test_users_is_answered_true_and_false():
-    session_true = FakeSession(execute_results=[1])
+    session_true = FakeSession(execute_results=[FakeResult(scalar_one_or_none_data=1)])
     q_true = make_query(UsersQueries, session_true)
     assert await q_true.is_answered("req", 1) is True
 
-    session_false = FakeSession(execute_results=[FakeResult(scalar_data=1)])
+    session_false = FakeSession(execute_results=[FakeResult(scalar_one_or_none_data=0)])
     q_false = make_query(UsersQueries, session_false)
     assert await q_false.is_answered("req", 1) is False
 

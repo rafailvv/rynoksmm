@@ -159,6 +159,13 @@ class SmmQueries(BaseDatabase):
             )
             return result.scalar()
 
+    async def get_photo_by_user_id(self, user_id):
+        async with self.db() as session:
+            result = await session.execute(
+                select(Smm.photo).where(Smm.user_id == user_id)
+            )
+            return result.scalar()
+
     async def is_used_free_sub(self, user_id):
         async with self.db() as session:
             result = await session.execute(
@@ -278,4 +285,3 @@ class SmmQueries(BaseDatabase):
             for i in range(len(result)):
                 promos[result[i][0]] = (result[i][1], result[i][2], result[i][3], result[i][4])
             return promos
-

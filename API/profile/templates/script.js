@@ -208,14 +208,17 @@ function fillInitialFields() {
             const heading = document.createElement('div');
             heading.classList.add('heading');
 
-            if (k in data.ta) {
-                var checkbox = document.createElement('div');
-                checkbox.classList.add('checked', 'checkbox');
+            var headingCheckbox = document.createElement('div');
+            headingCheckbox.classList.add('checkbox', 'heading-checkbox');
+            headingCheckbox.setAttribute('onclick', 'toggleCategoryCheckbox(this, event)');
 
-                heading.appendChild(checkbox);
-                console.log(checkbox);
-                console.log(heading);
+            var hasSelectedLine = k in data.ta && data.ta[k].length > 0;
+
+            if (hasSelectedLine) {
+                headingCheckbox.classList.add('checked');
             }
+
+            heading.appendChild(headingCheckbox);
             var label = document.createElement('label');
             label.textContent = k;
 
@@ -458,4 +461,44 @@ window.addEventListener("DOMContentLoaded", function (){
 
 function toggleCheckbox(element) {
   element.classList.toggle("checked");
+  updateHeadingCheckboxState(element);
+}
+
+function toggleCategoryCheckbox(element, event) {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  var container = element.closest('.container');
+
+  if (!container) {
+    return;
+  }
+
+  var shouldCheck = !element.classList.contains('checked');
+  var lineCheckboxes = container.querySelectorAll('.content_ta .line .checkbox');
+
+  lineCheckboxes.forEach(function(checkbox) {
+    checkbox.classList.toggle('checked', shouldCheck);
+  });
+
+  element.classList.toggle('checked', shouldCheck);
+}
+
+function updateHeadingCheckboxState(element) {
+  var container = element.closest('.container');
+
+  if (!container) {
+    return;
+  }
+
+  var headingCheckbox = container.querySelector('.heading .heading-checkbox');
+  var lineCheckboxes = container.querySelectorAll('.content_ta .line .checkbox');
+  var hasCheckedLine = Array.from(lineCheckboxes).some(function(checkbox) {
+    return checkbox.classList.contains('checked');
+  });
+
+  if (headingCheckbox) {
+    headingCheckbox.classList.toggle('checked', hasCheckedLine);
+  }
 }

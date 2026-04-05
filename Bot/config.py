@@ -7,7 +7,6 @@ from environs import Env
 @dataclass
 class TgBotConfig:
     token: str
-    pay_token: str
     admins: List[int]
     prof: str
 
@@ -44,6 +43,11 @@ class Mistral:
     model: str
 
 @dataclass
+class OpenRouter:
+    api_key: str
+    model: str
+
+@dataclass
 class ProfConfig:
     i_am: str
     i_looking: str
@@ -64,6 +68,7 @@ class Config:
     yookassa: Yookassa
     gpt: GPTConfig
     mistral: Mistral
+    openrouter: OpenRouter
     prof: ProfConfig
     minio: MinioConfig
 
@@ -80,6 +85,8 @@ def load_config(path: str = None):
                 path = "smm.env"
             elif prof == "massage":
                 path = "massage.env"
+            elif prof == "photo":
+                path = "photo.env"
             else:
                 path = ".env"  # fallback
     
@@ -88,10 +95,19 @@ def load_config(path: str = None):
     env.read_env(path)
     minio = Env()
     minio.read_env("minio.env")
+    openrouter_api = env.str("OPEN_ROUTER_API", default=None)
+    if openrouter_api is None:
+        openrouter_api = env.str("OPENROUTER_API_KEY")
+    openrouter_model = env.str("OPEN_ROUTER_MODEL", default=None)
+    if openrouter_model is None:
+        openrouter_model = env.str("OPENROUTER_MODEL")
+
     return Config(
         tg_bot=TgBotConfig(
-            token=env.str("BOT_TOKEN"), pay_token=env.str("PAY_TOKEN"),
-            admins=list(map(int, env.str("ADMINS").split(","))), prof=env.str("BOT_PROF")),
+            token=env.str("BOT_TOKEN"),
+            admins=list(map(int, env.str("ADMINS", default="").split(","))) if env.str("ADMINS", default="") else [],
+            prof=env.str("BOT_PROF"),
+        ),
         db=DbConfig(
             host=env.str("DB_HOST"),
             password=env.str("DB_PASS"),
@@ -104,8 +120,15 @@ def load_config(path: str = None):
             shop_id=env.int("YOOKASSA_SHOP_ID"),
             secret_key=env.str("YOOKASSA_SECRET_KEY")
         ),
-        gpt=GPTConfig(api_key=env.str("GPT_API_KEY"), asst_key=env.str("GPT_ASST_KEY")),
-        mistral=Mistral(api_key=env.str("MISTRAL_API_KEY"), model=env.str("MISTRAL_MODEL")),
+        gpt=GPTConfig(
+            api_key=env.str("GPT_API_KEY", default=""),
+            asst_key=env.str("GPT_ASST_KEY", default=""),
+        ),
+        mistral=Mistral(
+            api_key=env.str("MISTRAL_API_KEY", default=""),
+            model=env.str("MISTRAL_MODEL", default=""),
+        ),
+        openrouter=OpenRouter(api_key=openrouter_api, model=openrouter_model),
         prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF")),
         minio=MinioConfig(access_key=minio.str("MINIO_ROOT_USER"), secret_key=minio.str("MINIO_ROOT_PASSWORD"))
     )

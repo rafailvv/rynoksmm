@@ -1,5 +1,6 @@
 networks:
   mynetwork:
+    name: prof-tg-network
 
 services:
   bot_massage:
@@ -15,6 +16,7 @@ services:
       - mynetwork
 
   web_massage:
+    container_name: web_massage
     build:
       context: .
       dockerfile: Dockerfile.web

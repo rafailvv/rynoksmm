@@ -1,5 +1,6 @@
 networks:
   mynetwork:
+    name: prof-tg-network
 
 services:
   minio:
@@ -25,4 +26,3 @@ services:
 
 volumes:
   minio_data:
-

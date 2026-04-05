@@ -239,6 +239,10 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
         # Загружаем в S3
         filename = f"{user_id}.jpg"
         await upload_image(image_bytes, config.prof.prof, filename)
+
+        # Обновляем версию фото в БД, чтобы сбрасывать кеш в Telegram/S3
+        photo_version = uuid.uuid4().hex
+        await db.smm.add_photo(int(user_id), photo_version)
         
         
         # Возвращаем URL изображения

@@ -5,6 +5,7 @@ import asyncio
 import os
 import uuid
 import aiohttp
+import aioboto3
 
 import PIL.ImageOps
 from aiogram import Bot, Dispatcher, F, types
@@ -50,10 +51,32 @@ from Bot.buttons import *
 from openai import OpenAI
 
 
-def get_image_url(user_id: int) -> str:
+def get_image_url(user_id: int, cache_key: str | None = None) -> str:
     """Возвращает URL изображения из S3"""
     bucket = config.prof.prof
-    return f"https://s3.prof-tg.ru/{bucket}/images/{user_id}.jpg"
+    url = f"https://s3.prof-tg.ru/{bucket}/images/{user_id}.jpg"
+    if cache_key:
+        url = f"{url}?v={cache_key}"
+    return url
+
+
+async def upload_profile_image(image_bytes: bytes, user_id: int) -> None:
+    """Uploads a JPEG profile image to S3 (MinIO)."""
+    session = aioboto3.Session()
+    async with session.client(
+        "s3",
+        endpoint_url="http://minio:9000",
+        aws_access_key_id=config.minio.access_key,
+        aws_secret_access_key=config.minio.secret_key,
+        region_name="us-east-1",
+    ) as s3:
+        key = f"images/{user_id}.jpg"
+        await s3.put_object(
+            Bucket=config.prof.prof,
+            Key=key,
+            Body=image_bytes,
+            ContentType="image/jpeg",
+        )
 
 
 async def is_s3_image_exists(user_id: int) -> bool:
@@ -81,7 +104,7 @@ async def pay_for_publication(user_id, duration, price):
         chat_id=user_id,
         title="Опубликовать свой профиль",
         description="После публикации ваш профиль смогут найти заинтересованные пользователи",
-        provider_token=config.tg_bot.pay_token,
+        provider_token="",
         currency="RUB",
         # photo_url="https://i.ibb.co/448wWGc/avatar.png",
         # photo_width=640,
@@ -141,7 +164,8 @@ async def contacts(message: Message, state: FSMContext, dict_of_smm, i=0, fl=Tru
         else:
             btns = [[remove]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
-        photo_url = get_image_url(user_id)
+        photo_version = await db.smm.get_photo_by_user_id(user_id)
+        photo_url = get_image_url(user_id, cache_key=photo_version or photo)
         if not fl:
 
             await message.answer_photo(
@@ -298,7 +322,8 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
         else:
             btns = [[buy], [prev, next]]
         btns = InlineKeyboardMarkup(inline_keyboard=btns)
-        photo_url = get_image_url(user_id)
+        photo_version = await db.smm.get_photo_by_user_id(user_id)
+        photo_url = get_image_url(user_id, cache_key=photo_version or user_info[3])
         if not fl:
             await message.answer_photo(
                 photo=photo_url,
@@ -359,10 +384,17 @@ async def iterate_requests(message: Message, state: FSMContext, requests, i=0, f
         request = requests[i][0]
         user_id = requests[i][1]
         tg_url = requests[i][2]
-        await state.update_data(request=request, user_id=user_id, i=i)
+        await state.update_data(requests=requests, request=request, user_id=user_id, i=i)
         if fl:
-            await message.edit_text(text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>", parse_mode="HTML",
-                                    reply_markup=btns)
+            await message.edit_text(
+                text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>",
+                parse_mode="HTML",
+                reply_markup=btns,
+            )
         else:
-            await message.answer(text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>", parse_mode="HTML",
-                                 reply_markup=btns)
+            sent = await message.answer(
+                text=f"{request}\n<a href='{tg_url}'>Ссылка на пользователя</a>",
+                parse_mode="HTML",
+                reply_markup=btns,
+            )
+            await state.update_data(last_request_message_id=sent.message_id)

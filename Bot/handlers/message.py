@@ -58,11 +58,30 @@ from yookassa.domain.response import PaymentResponse
 
 from aiogram.exceptions import TelegramForbiddenError
 
-from openai import OpenAI
+# OpenRouter client is provided from Bot.misc.bot
 
 from Bot.misc import constants
 
 message_router = Router()
+
+WEBAPP_DOMAIN_BY_PROF = {
+    "smm": "smm.prof-tg.ru",
+    "massage": "massage.prof-tg.ru",
+    "photo": "photo.prof-tg.ru",
+}
+
+
+def get_webapp_base_url() -> str:
+    prof_type = config.prof.prof
+    domain = WEBAPP_DOMAIN_BY_PROF.get(prof_type, f"{prof_type}.prof-tg.ru")
+    return f"https://{domain}"
+
+
+def build_webapp_url(path: str) -> str:
+    base = get_webapp_base_url()
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base}{path}"
 
 def load_prof_details():
     """Загружает детали профессий из JSON файла"""
@@ -137,7 +156,13 @@ async def test(message: Message):
     import random
     
     rnd = random.randint(100000, 999999)
-    await message.answer(text=f"rnd: {rnd}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="test", web_app=WebAppInfo(url=f"https://smm.prof-tg.ru/profile?rnd={rnd}"))]]))
+    profile_url = build_webapp_url(f"profile?rnd={rnd}")
+    await message.answer(
+        text=f"rnd: {rnd}",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="test", web_app=WebAppInfo(url=profile_url))]]
+        ),
+    )
 
 
 @message_router.message(F.text.in_({"/start", "Меню ☰"}))
@@ -160,8 +185,10 @@ async def start(message: Message):
         [
             InlineKeyboardButton(text=prof_data.get("button_i_am", "Я специалист"), callback_data="menu|smm"),
             InlineKeyboardButton(text=prof_data.get("button_i_looking", "Я ищу специалиста"), callback_data="menu|looking_smm"),
-        ], [InlineKeyboardButton(text=prof_data.get("ai_name", "НейроБот 🤖"), callback_data="menu|ai")]
+        ]
     ]
+    if prof_data.get("ai_name"):
+        button_phone.append([InlineKeyboardButton(text=prof_data.get("ai_name"), callback_data="menu|ai")])
     keyboard = InlineKeyboardMarkup(inline_keyboard=button_phone)
     btn = [
         [KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
@@ -236,11 +263,11 @@ async def ai_smm(message: Message, state: FSMContext):
     if state_data["user_requests_limit"] <= state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
         btn = [
             [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price=990&days=50&req=requests"))],
+                url=build_webapp_url("templates/payment.html?price=990&days=50&req=requests")))],
             [InlineKeyboardButton(text="100 Запросов", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price=1490&days=100&req=requests"))],
+                url=build_webapp_url("templates/payment.html?price=1490&days=100&req=requests")))],
             [InlineKeyboardButton(text="500 Запросов", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price=5990&days=500&req=requests"))]
+                url=build_webapp_url("templates/payment.html?price=5990&days=500&req=requests")))]
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(
@@ -248,14 +275,14 @@ async def ai_smm(message: Message, state: FSMContext):
         return
 
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
-    chat_response = await client.chat.complete_async(
-        model=config.mistral.model,
+    chat_response = await openrouter_client.chat.completions.create(
+        model=config.openrouter.model,
         messages=[
             {
                 "role": "user",
                 "content": query,
             },
-        ]
+        ],
     )
     try:
         import re
@@ -263,7 +290,7 @@ async def ai_smm(message: Message, state: FSMContext):
         def escape_markdown_v2(text):
             return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
-        messages = escape_markdown_v2(chat_response.choices[0].message.content)
+        messages = escape_markdown_v2(chat_response.choices[0].message.content or "")
         await state.update_data(user_requests_count=state_data["user_requests_count"] + 1)
         await message_wait.edit_text(messages, parse_mode="MarkdownV2")
         await message.answer(f"У вас осталось {state_data['user_requests_limit'] - (await state.get_data())['user_requests_count']} запросов")
@@ -392,6 +419,11 @@ async def photo(message: Message, state: FSMContext):
         # Обрезаем фото
         cropped_bytes = await cut_photo(image_bytes)
         #TODO Сохранение обрезанного фото в S3 только после того как пользователь нажал на кнопку "Применить"
+        try:
+            await upload_profile_image(cropped_bytes, message.chat.id)
+        except Exception:
+            await message.answer("Не удалось сохранить фото в хранилище. Попробуйте еще раз.")
+            return
         await db.smm.add_photo(message.chat.id,
                                message.photo[
                                    -1].file_id if message.content_type == "photo" else message.animation.file_id)
@@ -472,7 +504,14 @@ async def support_reply(message: Message, state: FSMContext):
         await message.answer(text="Сообщение доставлено!")
     except TelegramForbiddenError as e:
         await message.answer(text="Ваш бот заблокирован пользователем")
-    await db.users.answer_request(state_data["request"][state_data["i"]][0], state_data["request"][state_data["i"]][1])
+    await db.users.answer_request(state_data["requests"][state_data["i"]][0], state_data["requests"][state_data["i"]][1])
+    await message.delete()
+    last_request_message_id = state_data.get("last_request_message_id")
+    if last_request_message_id:
+        try:
+            await bot.delete_message(chat_id=message.chat.id, message_id=last_request_message_id)
+        except Exception:
+            pass
     await requests(message, state)
 
 
@@ -532,13 +571,13 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         # ]
         btn = [
             [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={cost}&days={30}&req=subscription"))],
+                url=build_webapp_url(f"templates/payment.html?price={cost}&days={30}&req=subscription")))],
             [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}&req=subscription"))],
+                url=build_webapp_url(f"templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}&req=subscription")))],
             [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}&req=subscription"))],
+                url=build_webapp_url(f"templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}&req=subscription")))],
             [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
-                url=f"https://rynoksmm.ru/templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}&req=subscription"))],
+                url=build_webapp_url(f"templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}&req=subscription")))],
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(

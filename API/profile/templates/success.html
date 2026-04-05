@@ -93,7 +93,17 @@
     function redirectToTraining() {
         const payment_id = getParameterByName('payment_id');
         if (payment_id) {
-            window.Telegram.WebApp.openTelegramLink(`https://t.me/rynoksmm_bot?start=pay_${payment_id}`);
+            const host = window.location.hostname;
+            const botByHost = {
+                "smm.prof-tg.ru": "rynoksmm_bot",
+                "massage.prof-tg.ru": "rynokmassage_bot",
+                "photo.prof-tg.ru": "rynokphoto_bot",
+                "rynoksmm.ru": "rynoksmm_bot",
+                "rynokmassage.ru": "rynokmassage_bot",
+                "rynokphoto.ru": "rynokphoto_bot"
+            };
+            const bot = botByHost[host] || "rynoksmm_bot";
+            window.Telegram.WebApp.openTelegramLink(`https://t.me/${bot}?start=pay_${payment_id}`);
             window.Telegram.WebApp.close();
         } else {
             alert("Параметр payment_id не найден в URL");

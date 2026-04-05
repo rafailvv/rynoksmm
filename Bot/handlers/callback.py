@@ -128,6 +128,10 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         await state.update_data(ta=[])
         await search_by_field(callback.message, state, smm=False)
     elif data[1] == "ai":
+        if not prof_details.get(config.prof.prof, {}).get("ai_name"):
+            await message.answer("Нейробот недоступен для этой профессии")
+            await callback.answer()
+            return
         if "user_requests_limit" not in state_data:
             state_data["user_requests_limit"] = 10
         if "user_requests_count" not in state_data:
@@ -411,7 +415,7 @@ async def support(callback: CallbackQuery, state: FSMContext):
     data = callback.data.split("|")
     
     if data[1] == "reply":
-        if await db.users.is_answered(state_data["request"][state_data['i']][0], int(data[2])):
+        if await db.users.is_answered(state_data["requests"][state_data['i']][0], int(data[2])):
             await message.answer(text="Эта заявка уже отвечена")
             await requests(message, state)
         else:
@@ -420,7 +424,7 @@ async def support(callback: CallbackQuery, state: FSMContext):
             await state.set_state(st.support_reply)
 
     elif data[1] == "next":
-        await iterate_requests(message, state, state_data["request"], int(data[2]) + 1, fl=True)
+        await iterate_requests(message, state, state_data["requests"], int(data[2]) + 1, fl=True)
     elif data[1] == "prev":
-        await iterate_requests(message, state, state_data["request"], int(data[2]) - 1, fl=True)
+        await iterate_requests(message, state, state_data["requests"], int(data[2]) - 1, fl=True)
     await callback.answer()

@@ -1,5 +1,6 @@
 networks:
   mynetwork:
+    name: prof-tg-network
 
 
 services:
