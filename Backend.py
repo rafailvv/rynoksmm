@@ -5,9 +5,12 @@ import mimetypes
 import aioboto3
 import random
 import json
+import hmac
+import hashlib
+from urllib.parse import parse_qsl
 
 import uvicorn
-from fastapi import FastAPI, Request, APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, Request, APIRouter, UploadFile, File, HTTPException, Query, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,6 +27,7 @@ from yookassa import Configuration, Payment
 import uuid
 
 from Bot.config import config
+from Bot.misc.payment_plans import get_payment_plan
 
 from Database.admin import *
 from Database.session import BaseDatabase
@@ -71,6 +75,9 @@ mainpage_router = APIRouter()
 templates = Jinja2Templates(directory="API/profile/templates")
 app.mount("/templates", StaticFiles(directory="API/profile/templates"), name="templates")
 
+WEBAPP_INIT_DATA_HEADER = "X-Telegram-Init-Data"
+WEBAPP_AUTH_MAX_AGE_SECONDS = 24 * 60 * 60
+
 def load_prof_details():
     """Загружает детали профессий из JSON файла"""
     try:
@@ -80,6 +87,51 @@ def load_prof_details():
         return {}
 
 prof_details = load_prof_details()
+
+
+def _validate_telegram_init_data(init_data: str) -> dict:
+    if not init_data:
+        raise HTTPException(status_code=401, detail="Missing Telegram init data")
+
+    pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+    received_hash = pairs.pop("hash", None)
+    if not received_hash:
+        raise HTTPException(status_code=401, detail="Missing Telegram signature")
+
+    data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(pairs.items()))
+    secret_key = hmac.new(b"WebAppData", config.tg_bot.token.encode(), hashlib.sha256).digest()
+    computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(computed_hash, received_hash):
+        raise HTTPException(status_code=401, detail="Invalid Telegram signature")
+
+    auth_date_raw = pairs.get("auth_date")
+    if not auth_date_raw:
+        raise HTTPException(status_code=401, detail="Missing Telegram auth date")
+
+    try:
+        auth_date = int(auth_date_raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail="Invalid Telegram auth date") from exc
+
+    if int(datetime.now(timezone.utc).timestamp()) - auth_date > WEBAPP_AUTH_MAX_AGE_SECONDS:
+        raise HTTPException(status_code=401, detail="Telegram session expired")
+
+    return pairs
+
+
+async def get_authenticated_webapp_user_id(request: Request) -> int:
+    init_data = request.headers.get(WEBAPP_INIT_DATA_HEADER)
+    payload = _validate_telegram_init_data(init_data)
+    user_raw = payload.get("user")
+    if not user_raw:
+        raise HTTPException(status_code=401, detail="Missing Telegram user")
+
+    try:
+        user = json.loads(user_raw)
+        return int(user["id"])
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid Telegram user payload") from exc
 
 
 # @app.get("/items/{id}", response_class=HTMLResponse)
@@ -133,7 +185,10 @@ async def no_acc(request: Request):
 
 
 @mainpage_router.get("/profile/info/{user_id}")
-async def main_page_info(request: Request, user_id: int):
+async def main_page_info(request: Request, user_id: int, auth_user_id: int = Depends(get_authenticated_webapp_user_id)):
+    if user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     profile = await db.smm.get_profile_by_id(user_id)
     dict_of_ta = dict()
     dict_of_all_ta = dict()
@@ -181,13 +236,22 @@ async def main_page_info(request: Request, user_id: int):
 
 
 @mainpage_router.post("/profile")
-async def update(user: User):
-    if user.user_id not in await db.users.lst_of_users():
-        await db.users.add_user(user.user_id, None)
-    if await db.smm.get_profile_by_id(user.user_id) is None:
-        await db.smm.add_smm(user.user_id, datetime.utcnow())
+async def update(user: User, auth_user_id: int = Depends(get_authenticated_webapp_user_id)):
+    if user.user_id != auth_user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if (auth_user_id,) not in await db.users.lst_of_users():
+        await db.users.add_user(auth_user_id, None)
+    if await db.smm.get_profile_by_id(auth_user_id) is None:
+        await db.smm.add_smm(auth_user_id, datetime.utcnow())
     await db.smm.updt_user(
-        user_id=user.user_id, age=user.age, phone=user.phone, fullname=user.name, cost=user.cost, town=user.town, description=user.description
+        user_id=auth_user_id,
+        age=user.age,
+        phone=user.phone,
+        fullname=user.name,
+        cost=user.cost,
+        town=user.town,
+        description=user.description,
     )
 
 async def upload_image(image_bytes: bytes, bucket: str, filename: str):
@@ -215,10 +279,16 @@ def get_image_url(bucket: str, filename: str) -> str:
 
 
 @mainpage_router.post("/upload/{user_id}")
-async def upload_file(user_id: str, file: UploadFile = File(...)):
+async def upload_file(
+    user_id: str,
+    file: UploadFile = File(...),
+    auth_user_id: int = Depends(get_authenticated_webapp_user_id),
+):
     try:
         if not user_id:
             raise ValueError("User ID is not provided.")
+        if int(user_id) != auth_user_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
 
         # Читаем файл в память
         file_content = await file.read()
@@ -237,12 +307,12 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
         image_bytes = await cut_photo(image_bytes)
         
         # Загружаем в S3
-        filename = f"{user_id}.jpg"
+        filename = f"{auth_user_id}.jpg"
         await upload_image(image_bytes, config.prof.prof, filename)
 
         # Обновляем версию фото в БД, чтобы сбрасывать кеш в Telegram/S3
         photo_version = uuid.uuid4().hex
-        await db.smm.add_photo(int(user_id), photo_version)
+        await db.smm.add_photo(auth_user_id, photo_version)
         
         
         # Возвращаем URL изображения
@@ -250,6 +320,8 @@ async def upload_file(user_id: str, file: UploadFile = File(...)):
         
         return {"filename": filename, "url": image_url}
 
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 
@@ -260,20 +332,36 @@ class Categories(BaseModel):
 
 
 @mainpage_router.post("/save_categories/")
-async def save_categories(categories: Categories):
+async def save_categories(categories: Categories, auth_user_id: int = Depends(get_authenticated_webapp_user_id)):
     try:
+        if categories.user_id != auth_user_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
         await db.smm.edit_categories(categories)
         return {"status": "success"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 
 class PaymentRequest(BaseModel):
-    client_id: int
-    price: int
-    days: int
+    plan: str
     email: str
-    req: str
+
+
+@mainpage_router.get("/payment/plan/{plan_id}")
+async def get_payment_plan_info(plan_id: str, auth_user_id: int = Depends(get_authenticated_webapp_user_id)):
+    plan = get_payment_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Unknown payment plan")
+
+    return {
+        "plan": plan.plan_id,
+        "price": plan.price,
+        "days": plan.days,
+        "req": plan.req,
+        "client_id": auth_user_id,
+    }
 
 
 @mainpage_router.get("/users/created")
@@ -309,17 +397,23 @@ async def get_users_created(datefrom: datetime=Query(...), dateto: datetime=Quer
 #     return [{"time": f"{item['date']}T00:00:00Z", "value": item["cnt"]} for item in daily_data]
 
 @mainpage_router.post("/payment/token")
-async def get_confirmation_token(payment_request: PaymentRequest):
+async def get_confirmation_token(
+    payment_request: PaymentRequest,
+    auth_user_id: int = Depends(get_authenticated_webapp_user_id),
+):
     # Настройка конфигурации YooKassa
     Configuration.account_id = config.yookassa.shop_id
     Configuration.secret_key = config.yookassa.secret_key
 
-    # Получение данных из запроса
-    client_id = payment_request.client_id
-    price = payment_request.price
-    days = payment_request.days
     email = payment_request.email
-    req = payment_request.req
+    plan = get_payment_plan(payment_request.plan)
+    if plan is None:
+        raise HTTPException(status_code=400, detail="Unknown payment plan")
+
+    client_id = auth_user_id
+    price = plan.price
+    days = plan.days
+    req = plan.req
     
     # Получаем данные для текущей профессии
     prof_type = config.prof.prof
@@ -359,7 +453,7 @@ async def get_confirmation_token(payment_request: PaymentRequest):
             "capture": True,
             "test": True,
             "description": f'Подписка {days}' if req == 'subscription' else f'{days} {prof_data.get("ai_requests_description", "Запросов к НейроБот")}',
-            "metadata": {"client_id": client_id, "type": req, "days": days}
+            "metadata": {"client_id": client_id, "type": req, "days": days, "plan": plan.plan_id}
         }, idempotence_key)
 
     # Получение и возврат токена подтверждения

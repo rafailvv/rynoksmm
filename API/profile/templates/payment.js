@@ -1,6 +1,14 @@
-let clientID;
 let email;
 let paymentType;
+let paymentPlanId;
+let paymentPlan;
+let telegramInitData = "";
+
+
+function syncFullscreenOffset(webApp) {
+    const isFullscreen = Boolean(webApp && webApp.isFullscreen);
+    document.body.classList.toggle('tg-fullscreen', isFullscreen);
+}
 
 function getElements() {
     return {
@@ -65,11 +73,45 @@ function setStatus(message, isError = false) {
     statusMessage.classList.toggle('error', isError);
 }
 
-function renderPurchaseSummary() {
+function getTelegramHeaders(extraHeaders = {}) {
+    if (!telegramInitData) {
+        return extraHeaders;
+    }
+
+    return {
+        ...extraHeaders,
+        'X-Telegram-Init-Data': telegramInitData,
+    };
+}
+
+async function renderPurchaseSummary() {
+    const { nextButton } = getElements();
     const urlParams = new URLSearchParams(window.location.search);
-    const price = Number(urlParams.get('price') || 0);
-    const days = Number(urlParams.get('days') || 0);
-    paymentType = urlParams.get('req') || 'subscription';
+    paymentPlanId = urlParams.get('plan');
+
+    if (!paymentPlanId) {
+        setStatus('Не удалось определить тариф оплаты.', true);
+        nextButton.disabled = true;
+        return;
+    }
+
+    if (!telegramInitData) {
+        setStatus('Откройте оплату из Telegram, чтобы продолжить.', true);
+        nextButton.disabled = true;
+        return;
+    }
+
+    const response = await fetch(`/payment/plan/${encodeURIComponent(paymentPlanId)}`, {
+        headers: getTelegramHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to load payment plan');
+    }
+
+    paymentPlan = await response.json();
+    const price = Number(paymentPlan.price || 0);
+    const days = Number(paymentPlan.days || 0);
+    paymentType = paymentPlan.req || 'subscription';
 
     const copy = getPaymentCopy(paymentType, days);
     const {
@@ -91,19 +133,8 @@ function renderPurchaseSummary() {
     if (widgetCaption) {
         widgetCaption.textContent = copy.caption;
     }
-}
 
-try {
-    clientID = window.Telegram.WebApp.initDataUnsafe.user.id;
-} catch (error) {
-    console.error('Error getting clientID from WebApp:', error);
-    const urlParams = new URLSearchParams(window.location.search);
-    const encodedId = urlParams.get('id');
-    if (encodedId) {
-        clientID = Number(atob(encodedId));
-    } else {
-        console.error('No clientID available.');
-    }
+    nextButton.disabled = false;
 }
 
 document.addEventListener('touchstart', function(event) {
@@ -117,28 +148,20 @@ document.addEventListener('touchstart', function(event) {
 });
 
 async function createPayment() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const price = urlParams.get('price');
-    const days = urlParams.get('days');
-    const req = urlParams.get('req');
-
-    if (!price || !days || !email) {
-        console.error('Missing parameters: price, days, hours, or email.');
+    if (!paymentPlan || !paymentPlanId || !email || !telegramInitData) {
+        console.error('Missing parameters: plan or email.');
         return;
     }
 
     try {
         const response = await fetch('/payment/token', {
             method: 'POST',
-            headers: {
+            headers: getTelegramHeaders({
                 'Content-Type': 'application/json',
-            },
+            }),
             body: JSON.stringify({
-                client_id: clientID,
-                price: price,
-                days: days,
+                plan: paymentPlanId,
                 email: email,
-                req: req
             })
         });
 
@@ -193,4 +216,24 @@ document.getElementById('next-button').addEventListener('click', function() {
     createPayment();
 });
 
-renderPurchaseSummary();
+try {
+    const webApp = window.Telegram && window.Telegram.WebApp;
+    telegramInitData = webApp && webApp.initData ? webApp.initData : '';
+    syncFullscreenOffset(webApp);
+    if (webApp && typeof webApp.onEvent === 'function') {
+        webApp.onEvent('fullscreenChanged', function() {
+            syncFullscreenOffset(webApp);
+        });
+        webApp.onEvent('viewportChanged', function() {
+            syncFullscreenOffset(webApp);
+        });
+    }
+} catch (error) {
+    console.error('Error getting initData from WebApp:', error);
+}
+
+renderPurchaseSummary().catch((error) => {
+    console.error('Error loading payment plan:', error);
+    setStatus('Не удалось загрузить параметры оплаты. Откройте экран заново из Telegram.', true);
+    getElements().nextButton.disabled = true;
+});

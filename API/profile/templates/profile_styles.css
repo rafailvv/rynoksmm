@@ -1,4 +1,5 @@
 :root {
+    --tg-fullscreen-top-offset: 0px;
     --primary-color: #7c3aed;
     --primary-dark: #5b21b6;
     --primary-soft: rgba(124, 58, 237, 0.14);
@@ -31,10 +32,13 @@ html,
 body {
     margin: 0;
     padding: 0;
+    width: 100%;
+    max-width: 100%;
     min-height: 100%;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: var(--text-primary);
     line-height: 1.6;
+    overflow-x: hidden;
 }
 
 body.modern-body {
@@ -45,17 +49,24 @@ body.modern-body {
     overflow-x: hidden;
 }
 
+body.modern-body.tg-fullscreen {
+    --tg-fullscreen-top-offset: 100px;
+}
+
 .profile-page {
     position: relative;
+    width: 100%;
+    max-width: 100%;
 }
 
 .profile-shell {
     width: min(100%, 1240px);
     margin: 0 auto;
+    max-width: 100%;
 }
 
 .content-band {
-    padding: 28px 0 32px;
+    padding: calc(28px + var(--tg-fullscreen-top-offset)) 0 32px;
 }
 
 .section-eyebrow,
@@ -213,6 +224,8 @@ body.modern-body {
     font-weight: 800;
     letter-spacing: -0.04em;
     color: var(--text-primary);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .profile-actions {
@@ -253,6 +266,8 @@ body.modern-body {
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
     gap: 24px;
     align-items: start;
+    width: 100%;
+    max-width: 100%;
 }
 
 .left-stack,
@@ -260,12 +275,15 @@ body.modern-body {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    min-width: 0;
 }
 
 .details-card,
 .categories-card,
 .note-card {
     padding: 24px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .details-header,
@@ -280,6 +298,8 @@ body.modern-body {
     grid-template-columns: 180px minmax(0, 1fr);
     gap: 22px;
     align-items: center;
+    width: 100%;
+    max-width: 100%;
 }
 
 .profile-main {
@@ -315,6 +335,8 @@ body.modern-body {
     color: var(--text-secondary);
     font-size: 0.96rem;
     font-weight: 500;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .card-header-modern {
@@ -327,6 +349,7 @@ body.modern-body {
 
 .card-body {
     padding: 0 24px 24px;
+    min-width: 0;
 }
 
 .profile-meta {
@@ -334,6 +357,8 @@ body.modern-body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     margin-top: 22px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .meta-item {
@@ -346,6 +371,7 @@ body.modern-body {
     border: 1px solid rgba(124, 58, 237, 0.10);
     color: var(--text-primary);
     transition: var(--transition);
+    min-width: 0;
 }
 
 .meta-item:hover {
@@ -361,6 +387,9 @@ body.modern-body {
 
 .meta-item span {
     font-weight: 600;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .price-item {
@@ -397,6 +426,8 @@ body.modern-body {
     color: rgba(255, 255, 255, 0.92);
     font-size: 1rem;
     line-height: 1.8;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .categories-container {
@@ -423,6 +454,7 @@ body.modern-body {
     border: 1px solid rgba(124, 58, 237, 0.10);
     cursor: pointer;
     transition: var(--transition);
+    min-width: 0;
 }
 
 .heading:hover {
@@ -432,10 +464,13 @@ body.modern-body {
 
 .heading label {
     flex: 1;
+    min-width: 0;
     margin: 0 0 0 6px;
     color: var(--text-primary);
     font-weight: 700;
     cursor: pointer;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .category-list-button,
@@ -484,6 +519,16 @@ body.modern-body {
     background: #ffffff;
     border: 1px solid rgba(124, 58, 237, 0.08);
     box-shadow: 0 8px 18px rgba(76, 29, 149, 0.04);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.content_ta .line label,
+.content_ta .line span,
+.content_ta .line div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .checkbox {
@@ -550,6 +595,7 @@ body.modern-body {
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
+    max-width: 100%;
 }
 
 .modern-modal .modal-header {
@@ -604,7 +650,7 @@ body.modern-body {
 }
 
 .loading-overlay img {
-    width: 100px;
+    width: clamp(150px, 22vw, 220px);
     height: auto;
 }
 
@@ -645,6 +691,10 @@ body.modern-body {
 }
 
 @media (max-width: 768px) {
+    .content-band {
+        padding: calc(16px + var(--tg-fullscreen-top-offset)) 0 24px;
+    }
+
     .profile-shell {
         padding-left: 14px;
         padding-right: 14px;
@@ -667,6 +717,12 @@ body.modern-body {
         text-align: center;
     }
 
+    .card-header-modern,
+    .card-body {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
     .details-header,
     .section-heading-wrap,
     .save-wrap {
@@ -682,6 +738,13 @@ body.modern-body {
     #saveCategoriesBtn {
         width: 100%;
     }
+
+    .heading,
+    .content_ta .line,
+    .meta-item {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -695,5 +758,31 @@ body.modern-body {
     .section-chip {
         width: 100%;
         justify-content: center;
+    }
+
+    .profile-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .details-card,
+    .categories-card,
+    .note-card,
+    .card-header-modern,
+    .card-body {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .profile-name {
+        font-size: clamp(1.6rem, 9vw, 2.2rem);
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+    }
+
+    .loading-overlay img {
+        width: clamp(140px, 42vw, 190px);
     }
 }

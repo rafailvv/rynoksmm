@@ -26,7 +26,7 @@ class BasicAuth(AuthenticationBackend):
         # is_correct_username = secrets.compare_digest(credentials.username, correct_username)
         # is_correct_password = secrets.compare_digest(credentials.password, correct_password)
 
-        if username == correct_username and password == correct_password or request.client.host == '127.0.0.1':
+        if username == correct_username and password == correct_password:
             request.session.update({"authenticated": True})
             return True
 

@@ -1,4 +1,40 @@
 var user_id;
+var telegramInitData = "";
+
+
+function syncFullscreenOffset(webApp) {
+  const isFullscreen = Boolean(webApp && webApp.isFullscreen);
+  document.body.classList.toggle("tg-fullscreen", isFullscreen);
+}
+
+
+function getTelegramHeaders(extraHeaders = {}) {
+  if (!telegramInitData) {
+    return extraHeaders;
+  }
+
+  return {
+    ...extraHeaders,
+    "X-Telegram-Init-Data": telegramInitData,
+  };
+}
+
+
+function showAccessError(message) {
+  const loadingOverlay = document.getElementById("loading");
+  if (loadingOverlay) {
+    loadingOverlay.style.display = "none";
+  }
+
+  document.body.innerHTML = `
+    <main style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: #f5f7fb; font-family: Inter, sans-serif;">
+      <div style="max-width: 420px; background: white; border-radius: 20px; padding: 24px; box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12); text-align: center;">
+        <h1 style="margin: 0 0 12px; font-size: 24px;">Нет доступа</h1>
+        <p style="margin: 0; color: #475569; line-height: 1.5;">${message}</p>
+      </div>
+    </main>
+  `;
+}
 
 
 // Функция для получения URL изображения из S3
@@ -114,12 +150,17 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
           // Make a POST request using the fetch API
           fetch(url, {
               method: 'POST',
-              headers: {
+              headers: getTelegramHeaders({
                   'Content-Type': 'application/json',
-              },
+              }),
               body: JSON.stringify(data),
           })
-          .then(response => response.json())
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error('Profile update failed');
+              }
+              return response.json();
+          })
           .then(data => {
               console.log('Success:', data);
           })
@@ -147,8 +188,15 @@ document.getElementById('saveChangesBtn').addEventListener('click', function(eve
 
 
 function fillInitialFields() {
-  return fetch(`/profile/info/${user_id}`)
-    .then(response => response.json())
+  return fetch(`/profile/info/${user_id}`, {
+    headers: getTelegramHeaders(),
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Profile request failed');
+      }
+      return response.json();
+    })
     .then(data => {
       if (data.result) {
         document.getElementById('name').textContent = data.name;
@@ -373,9 +421,15 @@ function handleFileChange(event) {
 
   fetch(uploadUrl, {
       method: 'POST',
+      headers: getTelegramHeaders(),
       body: formData,
   })
-  .then(response => response.json())
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Upload failed');
+      }
+      return response.json();
+  })
   .then(data => {
       console.log('Success:', data);
 
@@ -438,12 +492,17 @@ console.log(selectedIds); // Выводим результат
 
   fetch('/save_categories/', {
     method: 'POST',
-    headers: {
+    headers: getTelegramHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify(data),
   })
-  .then(response => response.json())
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Save categories failed');
+    }
+    return response.json();
+  })
   .then(data => {
     console.log('Success:', data);
     location.reload();
@@ -454,19 +513,35 @@ console.log(selectedIds); // Выводим результат
 });
 
 window.addEventListener("DOMContentLoaded", function (){
-    try {
-        user_id = window.Telegram.WebApp.initDataUnsafe.user.id;
-    } catch {
-        user_id = 5283298935;
+    const webApp = window.Telegram && window.Telegram.WebApp;
+
+    if (!webApp || !webApp.initData || !webApp.initDataUnsafe || !webApp.initDataUnsafe.user) {
+        showAccessError("Откройте профиль через Telegram, чтобы просматривать и редактировать только свои данные.");
+        return;
     }
+
+    telegramInitData = webApp.initData;
+    user_id = webApp.initDataUnsafe.user.id;
 
     function isDesktop() {
         const userAgent = navigator.userAgent.toLowerCase();
         return userAgent.includes("windows") || userAgent.includes("macintosh") || userAgent.includes("linux");
     }
+    syncFullscreenOffset(webApp);
+    if (typeof webApp.onEvent === "function") {
+        webApp.onEvent("fullscreenChanged", function() {
+            syncFullscreenOffset(webApp);
+        });
+        webApp.onEvent("viewportChanged", function() {
+            syncFullscreenOffset(webApp);
+        });
+    }
     console.log(isDesktop());
     if (!isDesktop()) {
-        window.Telegram.WebApp.requestFullscreen();
+        webApp.requestFullscreen();
+        setTimeout(function() {
+            syncFullscreenOffset(webApp);
+        }, 150);
     }
 //    user_id = 5283298935;
     const loadingOverlay = document.getElementById("loading");

@@ -1,3 +1,9 @@
+import hashlib
+import hmac
+import json
+import time
+from urllib.parse import urlencode
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -12,6 +18,17 @@ DATABASE_URL = f"postgresql+asyncpg://{config.db.user}:{config.db.password}@{con
 
 engine = create_async_engine(DATABASE_URL)
 TestingSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+
+def make_auth_headers(user_id: int) -> dict[str, str]:
+    payload = {
+        "auth_date": str(int(time.time())),
+        "user": json.dumps({"id": user_id}, separators=(",", ":")),
+    }
+    data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(payload.items()))
+    secret_key = hmac.new(b"WebAppData", config.tg_bot.token.encode(), hashlib.sha256).digest()
+    payload["hash"] = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    return {"X-Telegram-Init-Data": urlencode(payload)}
 
 
 # Фикстура БД-сессии
@@ -57,11 +74,13 @@ async def test_profile(async_client):
     }
 
     # POST: создание/обновление профиля
-    response = await async_client.post("/profile", json=json)
+    headers = make_auth_headers(json["user_id"])
+
+    response = await async_client.post("/profile", json=json, headers=headers)
     assert response.status_code == 200
 
     # GET: получение профиля
-    response = await async_client.get(f"/profile/info/{json['user_id']}")
+    response = await async_client.get(f"/profile/info/{json['user_id']}", headers=headers)
     assert response.status_code == 200
     responsejs = response.json()
     assert responsejs['result']
@@ -71,16 +90,27 @@ async def test_profile(async_client):
 
 @pytest.mark.asyncio
 async def test_pay_token(async_client):
+    import Backend
+
+    class FakePayment:
+        id = "payment-id"
+        confirmation = type("Confirmation", (), {"confirmation_token": "token-123"})()
+
+        @staticmethod
+        def create(*args, **kwargs):
+            return FakePayment()
+
+    headers = make_auth_headers(10)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(Backend, "Payment", FakePayment)
     json = {
-        'client_id': 10,
-        'price': 1000,
-        'days': 30,
+        'plan': 'subscription_30',
         'email': 'test@gmail.com',
-        'req': "subscription"
     }
-    response = await async_client.post('/payment/token', json=json)
+    response = await async_client.post('/payment/token', json=json, headers=headers)
     assert response.status_code == 200
     response = response.json()
     assert response['result']
     assert response['id'] is not None
     assert response['confirmation_token'] is not None
+    monkeypatch.undo()

@@ -51,6 +51,7 @@ from datetime import datetime, timedelta
 
 from Bot.misc.scheduler import scheduler
 from Bot.misc.bot import *
+from Bot.misc.payment_plans import PAYMENT_PLANS
 
 from yookassa import Configuration, Payment
 import uuid
@@ -261,13 +262,16 @@ async def ai_smm(message: Message, state: FSMContext):
         await message.answer(prof_data.get("ai_exit_message", "Вы вышли из НейроБот"), reply_markup=btn)
         return
     if state_data["user_requests_limit"] <= state_data["user_requests_count"]: # and message.chat.id not in config.tg_bot.admins
+        requests_50 = PAYMENT_PLANS["requests_50"]
+        requests_100 = PAYMENT_PLANS["requests_100"]
+        requests_500 = PAYMENT_PLANS["requests_500"]
         btn = [
             [InlineKeyboardButton(text="50 Запросов", web_app=WebAppInfo(
-                url=build_webapp_url("templates/payment.html?price=990&days=50&req=requests")))],
+                url=build_webapp_url(f"templates/payment.html?plan={requests_50.plan_id}")))],
             [InlineKeyboardButton(text="100 Запросов", web_app=WebAppInfo(
-                url=build_webapp_url("templates/payment.html?price=1490&days=100&req=requests")))],
+                url=build_webapp_url(f"templates/payment.html?plan={requests_100.plan_id}")))],
             [InlineKeyboardButton(text="500 Запросов", web_app=WebAppInfo(
-                url=build_webapp_url("templates/payment.html?price=5990&days=500&req=requests")))]
+                url=build_webapp_url(f"templates/payment.html?plan={requests_500.plan_id}")))]
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(
@@ -556,10 +560,10 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         #     btns = InlineKeyboardMarkup(inline_keyboard=btns)
         #     await message.answer(text="Вам доступен пробный период 7 дней", reply_markup=btns)
         # else:
-        cost = 1000
-        discount3 = 0.1
-        discount6 = 0.25
-        discount12 = 0.4
+        subscription_30 = PAYMENT_PLANS["subscription_30"]
+        subscription_90 = PAYMENT_PLANS["subscription_90"]
+        subscription_180 = PAYMENT_PLANS["subscription_180"]
+        subscription_360 = PAYMENT_PLANS["subscription_360"]
         # btn = [
         #     [InlineKeyboardButton(text="1 месяц", callback_data=f"sub|1|{cost}|{user_id}")],
         #     [InlineKeyboardButton(text="3 месяца",
@@ -571,17 +575,17 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         # ]
         btn = [
             [InlineKeyboardButton(text="1 месяц", web_app=WebAppInfo(
-                url=build_webapp_url(f"templates/payment.html?price={cost}&days={30}&req=subscription")))],
+                url=build_webapp_url(f"templates/payment.html?plan={subscription_30.plan_id}")))],
             [InlineKeyboardButton(text="3 месяца", web_app=WebAppInfo(
-                url=build_webapp_url(f"templates/payment.html?price={int(3 * cost * (1 - discount3))}&days={90}&req=subscription")))],
+                url=build_webapp_url(f"templates/payment.html?plan={subscription_90.plan_id}")))],
             [InlineKeyboardButton(text="6 месяцев", web_app=WebAppInfo(
-                url=build_webapp_url(f"templates/payment.html?price={int(6 * cost * (1 - discount6))}&days={180}&req=subscription")))],
+                url=build_webapp_url(f"templates/payment.html?plan={subscription_180.plan_id}")))],
             [InlineKeyboardButton(text="12 месяцев", web_app=WebAppInfo(
-                url=build_webapp_url(f"templates/payment.html?price={int(12 * cost * (1 - discount12))}&days={360}&req=subscription")))],
+                url=build_webapp_url(f"templates/payment.html?plan={subscription_360.plan_id}")))],
         ]
         btn = InlineKeyboardMarkup(inline_keyboard=btn)
         await message.answer(
-            text=f"Выберите длительность подписки 👇\n\n1 месяц - {cost} ₽\n3 месяца - {int(3 * cost * (1 - discount3))} ₽ (Скидка {int(discount3 * 100)}%)\n6 месяцев - {int(6 * cost * (1 - discount6))} ₽ (Скидка {int(discount6 * 100)}%)\n12 месяцев - {int(12 * cost * (1 - discount12))} ₽ (Скидка {int(discount12 * 100)}%)",
+            text=f"Выберите длительность подписки 👇\n\n1 месяц - {subscription_30.price} ₽\n3 месяца - {subscription_90.price} ₽ (Скидка 10%)\n6 месяцев - {subscription_180.price} ₽ (Скидка 25%)\n12 месяцев - {subscription_360.price} ₽ (Скидка 40%)",
             reply_markup=btn
         )
     else:
