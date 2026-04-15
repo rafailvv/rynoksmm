@@ -10,6 +10,19 @@ function syncFullscreenOffset(webApp) {
     document.body.classList.toggle('tg-fullscreen', isFullscreen);
 }
 
+function shouldUseMobileFullscreen(webApp) {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const platform = String((webApp && webApp.platform) || '').toLowerCase();
+    return (
+        userAgent.includes('android') ||
+        userAgent.includes('iphone') ||
+        userAgent.includes('ipad') ||
+        userAgent.includes('ipod') ||
+        platform === 'android' ||
+        platform === 'ios'
+    );
+}
+
 function getElements() {
     return {
         priceValue: document.getElementById('price-value'),
@@ -227,6 +240,12 @@ try {
         webApp.onEvent('viewportChanged', function() {
             syncFullscreenOffset(webApp);
         });
+    }
+    if (shouldUseMobileFullscreen(webApp) && typeof webApp.requestFullscreen === 'function') {
+        webApp.requestFullscreen();
+        setTimeout(function() {
+            syncFullscreenOffset(webApp);
+        }, 150);
     }
 } catch (error) {
     console.error('Error getting initData from WebApp:', error);

@@ -8,6 +8,20 @@ function syncFullscreenOffset(webApp) {
 }
 
 
+function shouldUseMobileFullscreen(webApp) {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const platform = String((webApp && webApp.platform) || "").toLowerCase();
+  return (
+    userAgent.includes("android") ||
+    userAgent.includes("iphone") ||
+    userAgent.includes("ipad") ||
+    userAgent.includes("ipod") ||
+    platform === "ios" ||
+    platform === "android"
+  );
+}
+
+
 function getTelegramHeaders(extraHeaders = {}) {
   if (!telegramInitData) {
     return extraHeaders;
@@ -522,11 +536,6 @@ window.addEventListener("DOMContentLoaded", function (){
 
     telegramInitData = webApp.initData;
     user_id = webApp.initDataUnsafe.user.id;
-
-    function isDesktop() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        return userAgent.includes("windows") || userAgent.includes("macintosh") || userAgent.includes("linux");
-    }
     syncFullscreenOffset(webApp);
     if (typeof webApp.onEvent === "function") {
         webApp.onEvent("fullscreenChanged", function() {
@@ -536,8 +545,7 @@ window.addEventListener("DOMContentLoaded", function (){
             syncFullscreenOffset(webApp);
         });
     }
-    console.log(isDesktop());
-    if (!isDesktop()) {
+    if (shouldUseMobileFullscreen(webApp) && typeof webApp.requestFullscreen === "function") {
         webApp.requestFullscreen();
         setTimeout(function() {
             syncFullscreenOffset(webApp);
