@@ -586,6 +586,7 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         )
     else:
         promos = await db.smm.get_all_promos()
+        promos = {str(key).lower(): value for key, value in promos.items()}
         promo_data = promos.get(promo)
         if promo_data is not None:
             promo_usage = promo_data[0]

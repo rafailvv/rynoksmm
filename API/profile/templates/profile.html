@@ -9,7 +9,7 @@
     <title>Профиль</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="/templates/profile_styles.css" rel="stylesheet">
 </head>
 <body class="modern-body">
@@ -17,7 +17,6 @@
     <img src="https://s3.prof-tg.ru/system/images/duck_loading.gif" alt="Loading">
 </div>
 
-<!-- Modal -->
 <div class="modal fade" id="accessModal" tabindex="-1" aria-labelledby="accessModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modern-modal">
@@ -38,90 +37,114 @@
     </div>
 </div>
 
-<div class="container-fluid px-4 py-5">
-    <!-- Profile Header Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="modern-card profile-header-card">
-                <div class="row align-items-center">
-                    <div class="col-lg-4 col-md-5 text-center mb-4 mb-md-0">
-                        <div class="profile-image-container" onclick="changePhoto()">
-                            <img src="" alt="Фото профиля"
-                                class="profile-image" id="photo" onerror="this.src='https://s3.prof-tg.ru/system/images/default.jpg'">
-                            <div class="profile-image-loader"></div>
-                            <div class="profile-image-overlay">
-                                <i class="fas fa-camera"></i>
-                                <span>Изменить фото</span>
+<main class="profile-page">
+    <section class="content-band">
+        <div class="container-fluid profile-shell">
+            <div class="content-grid">
+                <div class="left-stack">
+                    <div class="modern-card details-card">
+                        <div class="details-header">
+                            <div class="profile-top">
+                                <div class="profile-image-container" onclick="changePhoto()">
+                                    <img src="" alt="Фото профиля"
+                                         class="profile-image" id="photo" onerror="this.src='https://s3.prof-tg.ru/system/images/default.jpg'">
+                                    <div class="profile-image-loader"></div>
+                                    <div class="profile-image-overlay">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Изменить фото</span>
+                                    </div>
+                                    <input type="file" id="fileInput" style="display: none;" accept="image/*"
+                                           onchange="handleFileChange(event)">
+                                </div>
+
+                                <div class="profile-main">
+                                    <div class="profile-status-row">
+                                        <span class="status-pill" id="profile-status-pill">
+                                            <i class="fas fa-circle"></i>
+                                            <span id="profile-status-text">Профиль активен</span>
+                                        </span>
+                                    </div>
+
+                                    <h2 class="profile-name" id="name">{{name}}</h2>
+                                    <div class="subscription-line" id="date_sub">{{date_sub}}</div>
+                                    <div class="profile-actions">
+                                        <button type="button" class="btn btn-primary btn-modern"
+                                                data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                                                onclick="fillModalFields()">
+                                            <i class="fas fa-edit me-2"></i>Изменить профиль
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <input type="file" id="fileInput" style="display: none;" accept="image/*"
-                                onchange="handleFileChange(event)">
+
+                            <div class="details-heading">
+                                <h3 class="section-title">Основная информация</h3>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-lg-8 col-md-7">
-                        <div class="profile-info">
-                            <h1 class="profile-name" id="name">{{name}}</h1>
-                            <div class="profile-meta">
-                                <div class="meta-item">
-                                    <i class="fas fa-phone text-primary"></i>
-                                    <span id="phone">{{phone}}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-birthday-cake text-success"></i>
-                                    <span id="age">{{age}} лет</span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-map-marker-alt text-danger"></i>
-                                    <span id="city">{{town}}</span>
-                                </div>
-                                <div class="meta-item price-item">
-                                    <i class="fas fa-ruble-sign text-warning"></i>
-                                    <span>от <span id="cost" class="price-value">{{cost}}</span>₽</span>
-                                </div>
+
+                        <div class="profile-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-phone text-primary"></i>
+                                <span id="phone">{{phone}}</span>
                             </div>
-                            <div class="profile-description mt-3">
+                            <div class="meta-item">
+                                <i class="fas fa-birthday-cake text-success"></i>
+                                <span id="age">{{age}} лет</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-map-marker-alt text-danger"></i>
+                                <span id="city">{{town}}</span>
+                            </div>
+                            <div class="meta-item price-item">
+                                <i class="fas fa-ruble-sign text-warning"></i>
+                                <span>от <span id="cost" class="price-value">{{cost}}</span>₽</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-description">
+                            <div class="description-card">
+                                <div class="description-label">Описание</div>
                                 <p id="description" class="description-text">{{description}}</p>
                             </div>
-                            <div class="profile-actions mt-4">
-                                <button type="button" class="btn btn-primary btn-modern" 
-                                        data-bs-toggle="modal" data-bs-target="#editProfileModal"
-                                        onclick="fillModalFields()">
-                                    <i class="fas fa-edit me-2"></i>Редактировать профиль
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-stack">
+                    <div class="modern-card categories-card">
+                        <div class="card-header-modern">
+                            <div class="section-heading-wrap">
+                                <div>
+                                    <h3 class="section-title">
+                                        <i class="fas fa-tags me-2"></i>Категории услуг
+                                    </h3>
+                                    <p class="section-subtitle mb-0">Выберите специализации, по которым хотите получать запросы.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="categories" class="categories-container"></div>
+                            <div class="directions-container mt-3" id="directions"></div>
+                            <div class="save-wrap">
+                                <button type="button" class="btn btn-success btn-modern" id="saveCategoriesBtn">
+                                    <i class="fas fa-save me-2"></i>Сохранить категории
                                 </button>
                             </div>
-                            <div class="subscription-info mt-3">
-                                <small class="text-muted" id="date_sub">{{date_sub}}</small>
-                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modern-card note-card">
+                        <div class="profile-note">
+                            <i class="fas fa-star"></i>
+                            <span>Чем точнее заполнен профиль и категории, тем выше шанс получить релевантные обращения.</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+</main>
 
-    <!-- Categories Section -->
-    <div class="row">
-        <div class="col-12">
-            <div class="modern-card">
-                <div class="card-header-modern">
-                    <h3 class="section-title">
-                        <i class="fas fa-tags me-2"></i>Категории услуг
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div id="categories" class="categories-container"></div>
-                    <div class="directions-container mt-3" id="directions"></div>
-                    <div class="text-center mt-4">
-                        <button type="button" class="btn btn-success btn-modern" id="saveCategoriesBtn">
-                            <i class="fas fa-save me-2"></i>Сохранить категории
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно для редактирования профиля -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content modern-modal">
@@ -136,12 +159,12 @@
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <span></span>
                 </div>
-                
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="form-floating">
                             <input type="text" class="form-control modern-input" id="editName" name="name" required
-                                placeholder="Фамилия Имя">
+                                   placeholder="Фамилия Имя">
                             <label for="editName">
                                 <i class="fas fa-user me-2"></i>Имя
                             </label>
@@ -150,11 +173,11 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <input type="tel" class="form-control modern-input" id="editPhone" name="phone" 
-                                pattern="^\+7\d{10}$" required placeholder="+79991234567">
+                            <input type="tel" class="form-control modern-input" id="editPhone" name="phone"
+                                   pattern="^\+7\d{10}$" required placeholder="+79991234567">
                             <label for="editPhone">
                                 <i class="fas fa-phone me-2"></i>Телефон
                             </label>
@@ -163,7 +186,7 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-floating">
                             <input type="number" class="form-control modern-input" id="editAge" required placeholder="20">
@@ -175,7 +198,7 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-floating">
                             <input type="text" class="form-control modern-input" id="editCity" required placeholder="Москва">
@@ -187,7 +210,7 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="col-12">
                         <div class="form-floating">
                             <input type="number" class="form-control modern-input" id="editCost" required placeholder="30000">
@@ -205,11 +228,11 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="col-12">
                         <div class="form-floating">
-                            <textarea class="form-control modern-input" id="editDescription" name="description" 
-                                    maxlength="500" required placeholder="Описание профиля" style="height: 120px"></textarea>
+                            <textarea class="form-control modern-input" id="editDescription" name="description"
+                                      maxlength="500" required placeholder="Описание профиля" style="height: 120px"></textarea>
                             <label for="editDescription">
                                 <i class="fas fa-align-left me-2"></i>Описание
                             </label>
@@ -234,15 +257,9 @@
 
 <script> var prof_bucket = '{{ prof }}'; </script>
 
-<!-- Подключаем Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Подключаем jQuery для совместимости -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- Telegram Web App API -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Основной скрипт -->
 <script src="templates/script.js"></script>
-
-
 </body>
 </html>

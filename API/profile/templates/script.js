@@ -194,6 +194,7 @@ function fillInitialFields() {
         console.log(formattedDate);
 
         document.getElementById('date_sub').textContent = formattedDate;
+        updateProfileStatus(dateString);
         var categories = document.getElementById("categories");
         var c = 0;
         var i = 1;
@@ -292,6 +293,26 @@ function fillInitialFields() {
     .catch(error => console.error('Error:', error));
 
 
+}
+
+function updateProfileStatus(dateString) {
+  var statusText = document.getElementById('profile-status-text');
+  var statusPill = document.getElementById('profile-status-pill');
+  var subscriptionLine = document.getElementById('date_sub');
+
+  if (!statusText || !statusPill) {
+    return;
+  }
+
+  var isActive = dateString !== "Подписка не активна";
+
+  statusText.textContent = isActive ? "Профиль активен" : "Профиль неактивен";
+  statusPill.classList.toggle('status-active', isActive);
+  statusPill.classList.toggle('status-inactive', !isActive);
+
+  if (subscriptionLine) {
+    subscriptionLine.style.display = isActive ? "block" : "none";
+  }
 }
 
 

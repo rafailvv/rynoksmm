@@ -43,7 +43,7 @@ function getPaymentCopy(req, days) {
     if (req === 'subscription') {
         return {
             label: 'Подписка',
-            badge: 'Доступ к профилю',
+            badge: 'Публикация карточки специалиста',
             type: 'Подписка',
             period: `на ${pluralizeDays(days)}`,
             caption: 'После оплаты откроется защищенный виджет YooKassa для активации подписки.'
