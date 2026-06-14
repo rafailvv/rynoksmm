@@ -1,22 +1,24 @@
 networks:
   mynetwork:
-    name: prof-tg-network
+    name: specfind-network
 
 services:
-  bot_photo:
+  bot_event:
     build:
       context: .
       dockerfile: Dockerfile.bot
     env_file:
-      - photo.env
+      - event.env
     depends_on:
-      - redis_photo
-      - db_photo
+      redis_event:
+        condition: service_started
+      db_event:
+        condition: service_healthy
     networks:
       - mynetwork
 
-  web_photo:
-    container_name: web_photo
+  web_event:
+    container_name: web_event
     build:
       context: .
       dockerfile: Dockerfile.web
@@ -24,38 +26,46 @@ services:
     ports:
       - "8002:8002"
     env_file:
-      - photo.env
+      - event.env
     depends_on:
-      - redis_photo
-      - db_photo
+      redis_event:
+        condition: service_started
+      db_event:
+        condition: service_healthy
     volumes:
-      - pg_data_photo:/var/lib/postgresql/data
+      - pg_data_event:/var/lib/postgresql/data
     networks:
       - mynetwork
 
-  redis_photo:
+  redis_event:
     image: "redis:latest"
     ports:
       - "6482:6379"
     networks:
       - mynetwork
 
-  db_photo:
-    image: "postgres:latest"
+  db_event:
+    image: "postgres:17"
     environment:
-      POSTGRES_USER: rynokphoto
+      POSTGRES_USER: rynokevent
       POSTGRES_PASSWORD: 23jQ29155skR9659
-      POSTGRES_DB: rynokphoto
+      POSTGRES_DB: rynokevent
     ports:
       - "5435:5432"
     volumes:
-      - pg_data_photo:/var/lib/postgresql/data
+      - pg_data_event:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynokevent -d rynokevent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - mynetwork
 
-  grafana_photo:
+  grafana_event:
     image: grafana/grafana:latest
-    container_name: grafana_photo
+    container_name: grafana_event
     environment:
       - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
     ports:
@@ -67,5 +77,5 @@ services:
       - mynetwork
 
 volumes:
-  pg_data_photo:
+  pg_data_event:
   grafana_data:

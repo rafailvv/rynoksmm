@@ -1,6 +1,6 @@
 DC_FILES = -f docker-compose.smm.yml \
            -f docker-compose.massage.yml \
-           -f docker-compose.photo.yml
+           -f docker-compose.event.yml
            
 
 
@@ -28,14 +28,17 @@ build:
 
 
 smm:
+	@if [ "$(ACTION)" = "up" ]; then docker-compose -f docker-compose.minio.yml up -d minio; fi
 	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_smm web_smm,bot_smm web_smm redis_smm db_smm)
 
 
 massage:
+	@if [ "$(ACTION)" = "up" ]; then docker-compose -f docker-compose.minio.yml up -d minio; fi
 	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_massage web_massage,bot_massage web_massage redis_massage db_massage)
 
-photo:
-	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_photo web_photo,bot_photo web_photo redis_photo db_photo)
+event:
+	@if [ "$(ACTION)" = "up" ]; then docker-compose -f docker-compose.minio.yml up -d minio; fi
+	docker-compose $(DC_FILES) $(ACTION) $(if $(filter up,$(ACTION)),-d) $(if $(filter build,$(ACTION)),bot_event web_event,bot_event web_event redis_event db_event)
 
 
 nginx:
@@ -60,15 +63,17 @@ minio-up:
 	docker-compose -f docker-compose.minio.yml up -d minio
 
 restart:
+	sudo docker-compose -f docker-compose.minio.yml up -d minio
 	sudo docker-compose $(DC_FILES) down
 	sudo docker-compose $(DC_FILES) build
 	sudo docker-compose $(DC_FILES) up -d
 
 
 bot-restart:
-	sudo docker-compose $(DC_FILES) down bot_massage bot_smm bot_photo
-	sudo docker-compose $(DC_FILES) build bot_massage bot_smm bot_photo
-	sudo docker-compose $(DC_FILES) up -d bot_massage bot_smm bot_photo
+	sudo docker-compose -f docker-compose.minio.yml up -d minio
+	sudo docker-compose $(DC_FILES) down bot_massage bot_smm bot_event
+	sudo docker-compose $(DC_FILES) build bot_massage bot_smm bot_event
+	sudo docker-compose $(DC_FILES) up -d bot_massage bot_smm bot_event
 
 minio-restart:
 	sudo docker-compose -f docker-compose.minio.yml down minio
@@ -81,8 +86,9 @@ nginx-restart:
 	sudo docker-compose -f docker-compose.nginx.yml up -d nginx
 
 restart-nf:
-	sudo docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm bot_photo web_photo
-	sudo docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm bot_photo web_photo
+	sudo docker-compose -f docker-compose.minio.yml up -d minio
+	sudo docker-compose $(DC_FILES) build bot_massage web_massage bot_smm web_smm bot_event web_event
+	sudo docker-compose $(DC_FILES) up -d bot_massage web_massage bot_smm web_smm bot_event web_event
 	sudo docker-compose -f docker-compose.nginx.yml up -d nginx
 
 
@@ -93,5 +99,5 @@ smm-logs:
 massage-logs:
 	docker-compose -f docker-compose.massage.yml logs -f --tail 300 bot_massage web_massage
 
-photo-logs:
-	docker-compose -f docker-compose.photo.yml logs -f --tail 300 bot_photo web_photo
+event-logs:
+	docker-compose -f docker-compose.photo.yml logs -f --tail 300 bot_event web_event

@@ -66,15 +66,15 @@ from Bot.misc import constants
 message_router = Router()
 
 WEBAPP_DOMAIN_BY_PROF = {
-    "smm": "smm.prof-tg.ru",
-    "massage": "massage.prof-tg.ru",
-    "photo": "photo.prof-tg.ru",
+    "smm": "smm.specfind.ru",
+    "massage": "massage.specfind.ru",
+    "event": "event.specfind.ru",
 }
 
 
 def get_webapp_base_url() -> str:
     prof_type = config.prof.prof
-    domain = WEBAPP_DOMAIN_BY_PROF.get(prof_type, f"{prof_type}.prof-tg.ru")
+    domain = WEBAPP_DOMAIN_BY_PROF.get(prof_type, f"{prof_type}.specfind.ru")
     return f"https://{domain}"
 
 
@@ -280,7 +280,7 @@ async def ai_smm(message: Message, state: FSMContext):
 
     message_wait = await message.answer("Подождите, запрос обрабатывается...")
     chat_response = await openrouter_client.chat.completions.create(
-        model=config.openrouter.model,
+        model=config.openrouter.model, temperature=0.2,
         messages=[
             {
                 "role": "user",

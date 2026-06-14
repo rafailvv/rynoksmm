@@ -1,4 +1,5 @@
 from Database.models import *
+from Database.embeddings import make_embedding_safe
 from Database.session import BaseDatabase
 from sqlalchemy import *
 
@@ -118,10 +119,19 @@ class SmmQueries(BaseDatabase):
             await session.commit()
 
     async def updt_user(self, user_id, fullname, phone, age, town, cost, description):
+        description_embedding = await make_embedding_safe(description)
         async with self.db() as session:
             await session.execute(
                 update(Smm).where(Smm.user_id == user_id)
-                .values(full_name=fullname, phone=phone, age=age, town=town, cost=cost, description=description)
+                .values(
+                    full_name=fullname,
+                    phone=phone,
+                    age=age,
+                    town=town,
+                    cost=cost,
+                    description=description,
+                    description_embedding=description_embedding,
+                )
             )
             await session.commit()
 
@@ -181,9 +191,13 @@ class SmmQueries(BaseDatabase):
             await session.commit()
 
     async def add_description(self, user_id, description):
+        description_embedding = await make_embedding_safe(description)
         async with self.db() as session:
             await session.execute(
-                update(Smm).where(Smm.user_id == user_id).values(description=description)
+                update(Smm).where(Smm.user_id == user_id).values(
+                    description=description,
+                    description_embedding=description_embedding,
+                )
             )
             await session.commit()
 

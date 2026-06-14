@@ -54,7 +54,7 @@ from openai import OpenAI
 def get_image_url(user_id: int, cache_key: str | None = None) -> str:
     """Возвращает URL изображения из S3"""
     bucket = config.prof.prof
-    url = f"https://s3.prof-tg.ru/{bucket}/images/{user_id}.jpg"
+    url = f"https://s3.specfind.ru/{bucket}/images/{user_id}.jpg"
     if cache_key:
         url = f"{url}?v={cache_key}"
     return url
@@ -65,7 +65,7 @@ async def upload_profile_image(image_bytes: bytes, user_id: int) -> None:
     session = aioboto3.Session()
     async with session.client(
         "s3",
-        endpoint_url="http://minio:9000",
+        endpoint_url=config.minio.endpoint_url,
         aws_access_key_id=config.minio.access_key,
         aws_secret_access_key=config.minio.secret_key,
         region_name="us-east-1",

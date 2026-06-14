@@ -1,6 +1,6 @@
 networks:
   mynetwork:
-    name: prof-tg-network
+    name: specfind-network
 
 services:
   bot_smm:
@@ -10,8 +10,10 @@ services:
     env_file:
       - smm.env
     depends_on:
-      - redis_smm
-      - db_smm
+      redis_smm:
+        condition: service_started
+      db_smm:
+        condition: service_healthy
     networks:
       - mynetwork
 
@@ -26,8 +28,10 @@ services:
     env_file:
       - smm.env
     depends_on:
-      - redis_smm
-      - db_smm
+      redis_smm:
+        condition: service_started
+      db_smm:
+        condition: service_healthy
     volumes:
       - pg_data_smm:/var/lib/postgresql/data
     networks:
@@ -41,7 +45,7 @@ services:
       - mynetwork
 
   db_smm:
-    image: "postgres:latest"
+    image: "postgres:17"
     environment:
       POSTGRES_USER: rynoksmm
       POSTGRES_PASSWORD: 23jQ29155skR9659
@@ -50,6 +54,12 @@ services:
       - "5433:5432"
     volumes:
       - pg_data_smm:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynoksmm -d rynoksmm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - mynetwork
     

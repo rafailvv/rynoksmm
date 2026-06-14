@@ -1,6 +1,6 @@
 networks:
   mynetwork:
-    name: prof-tg-network
+    name: specfind-network
 
 
 services:

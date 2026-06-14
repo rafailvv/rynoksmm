@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from Database.queries.contacts import ContactsQueries
+from Database.queries.smm import SmmQueries
 from Database.queries.users import UsersQueries
 
 
@@ -200,3 +201,35 @@ async def test_contacts_remove_contact_true_false():
 
     assert await q_true.remove_contact(1, 2) is True
     assert await q_false.remove_contact(1, 2) is False
+
+
+@pytest.mark.asyncio
+async def test_smm_add_description_updates_embedding(monkeypatch):
+    session = FakeSession()
+    q = make_query(SmmQueries, session)
+
+    async def fake_embedding(text):
+        assert text == "profile text"
+        return [0.1, 0.2, 0.3]
+
+    monkeypatch.setattr("Database.queries.smm.make_embedding_safe", fake_embedding)
+
+    await q.add_description(1, "profile text")
+
+    assert session.commit_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_smm_updt_user_updates_embedding(monkeypatch):
+    session = FakeSession()
+    q = make_query(SmmQueries, session)
+
+    async def fake_embedding(text):
+        assert text == "profile text"
+        return [0.4, 0.5]
+
+    monkeypatch.setattr("Database.queries.smm.make_embedding_safe", fake_embedding)
+
+    await q.updt_user(1, "Name", "123", 30, "Town", 50000, "profile text")
+
+    assert session.commit_calls == 1

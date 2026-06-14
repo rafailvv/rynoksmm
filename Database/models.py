@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Identity, Integer, Text, text
+from sqlalchemy import JSON, BigInteger, Column, DateTime, ForeignKey, Identity, Integer, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 
 from sqlalchemy.orm import declarative_base, relationship
@@ -86,6 +86,7 @@ class Smm(Base):
     photo = Column(Text)
     free_sub = Column(Integer, server_default=text('0'))
     description = Column(Text)
+    description_embedding = Column(JSON)
     date_sub = Column(DateTime)
     promos = Column(Text)
 

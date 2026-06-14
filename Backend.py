@@ -2,6 +2,7 @@
 import os
 import ssl
 import mimetypes
+import logging
 import aioboto3
 import random
 import json
@@ -31,6 +32,7 @@ from Bot.misc.payment_plans import get_payment_plan
 
 from Database.admin import *
 from Database.session import BaseDatabase
+from Database.migrations import run_migrations
 
 from sqladmin.authentication import AuthenticationBackend
 from sqladmin import Admin, ModelView
@@ -68,6 +70,12 @@ app = FastAPI(
         }
     ]
 )
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await BaseDatabase(config).init_db()
+    await run_migrations()
 
 
 mainpage_router = APIRouter()
@@ -260,7 +268,7 @@ async def upload_image(image_bytes: bytes, bucket: str, filename: str):
 
     async with session.client(
         "s3",
-        endpoint_url="http://minio:9000",
+        endpoint_url=config.minio.endpoint_url,
         aws_access_key_id=config.minio.access_key,
         aws_secret_access_key=config.minio.secret_key,
         region_name="us-east-1",
@@ -274,7 +282,7 @@ async def upload_image(image_bytes: bytes, bucket: str, filename: str):
 
 def get_image_url(bucket: str, filename: str) -> str:
     """Возвращает публичный URL изображения из S3"""
-    return f"https://s3.prof-tg.ru/{bucket}/images/{filename}"
+    return f"https://s3.specfind.ru/{bucket}/images/{filename}"
 
 
 

@@ -40,7 +40,7 @@ async def test_load_prof_details_file_not_found(monkeypatch):
 def test_backend_get_image_url():
     import Backend
 
-    assert Backend.get_image_url("bucket", "1.jpg") == "https://s3.prof-tg.ru/bucket/images/1.jpg"
+    assert Backend.get_image_url("bucket", "1.jpg") == "https://s3.specfind.ru/bucket/images/1.jpg"
 
 
 @pytest.mark.asyncio

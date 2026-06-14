@@ -1,6 +1,6 @@
 networks:
   mynetwork:
-    name: prof-tg-network
+    name: specfind-network
 
 services:
   bot_massage:
@@ -10,8 +10,10 @@ services:
     env_file:
       - massage.env
     depends_on:
-      - redis_massage
-      - db_massage
+      redis_massage:
+        condition: service_started
+      db_massage:
+        condition: service_healthy
     networks:
       - mynetwork
 
@@ -26,8 +28,10 @@ services:
     env_file:
       - massage.env
     depends_on:
-      - redis_massage
-      - db_massage
+      redis_massage:
+        condition: service_started
+      db_massage:
+        condition: service_healthy
     volumes:
       - pg_data_massage:/var/lib/postgresql/data
     networks:
@@ -42,7 +46,7 @@ services:
       - mynetwork
 
   db_massage:
-    image: "postgres:latest"
+    image: "postgres:17"
     environment:
       POSTGRES_USER: rynokmassage
       POSTGRES_PASSWORD: 23jQ29155skR9659
@@ -51,6 +55,12 @@ services:
       - "5434:5432"
     volumes:
       - pg_data_massage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynokmassage -d rynokmassage"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - mynetwork
   grafana_massage:

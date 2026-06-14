@@ -4,6 +4,10 @@ from typing import List
 from environs import Env
 
 
+def _clean_env_value(value: str) -> str:
+    return value.strip().strip("\"'")
+
+
 @dataclass
 class TgBotConfig:
     token: str
@@ -58,6 +62,7 @@ class ProfConfig:
 class MinioConfig:
     access_key: str
     secret_key: str
+    endpoint_url: str
     
 
 @dataclass
@@ -85,8 +90,8 @@ def load_config(path: str = None):
                 path = "smm.env"
             elif prof == "massage":
                 path = "massage.env"
-            elif prof == "photo":
-                path = "photo.env"
+            elif prof in {"photo", "event"}:
+                path = "event.env"
             else:
                 path = ".env"  # fallback
     
@@ -109,13 +114,17 @@ def load_config(path: str = None):
             prof=env.str("BOT_PROF"),
         ),
         db=DbConfig(
-            host=env.str("DB_HOST"),
+            host=_clean_env_value(env.str("DB_HOST")),
             password=env.str("DB_PASS"),
             user=env.str("DB_USER"),
             database=env.str("DB_NAME"),
             port=env.str("DB_PORT"),
         ),
-        redis=RedisConfig(host=env.str("REDIS_HOST"), use_redis=env.bool("USE_REDIS"), port=env.int("REDIS_PORT")),
+        redis=RedisConfig(
+            host=_clean_env_value(env.str("REDIS_HOST")),
+            use_redis=env.bool("USE_REDIS"),
+            port=env.int("REDIS_PORT"),
+        ),
         yookassa=Yookassa(
             shop_id=env.int("YOOKASSA_SHOP_ID"),
             secret_key=env.str("YOOKASSA_SECRET_KEY")
@@ -130,7 +139,11 @@ def load_config(path: str = None):
         ),
         openrouter=OpenRouter(api_key=openrouter_api, model=openrouter_model),
         prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF")),
-        minio=MinioConfig(access_key=minio.str("MINIO_ROOT_USER"), secret_key=minio.str("MINIO_ROOT_PASSWORD"))
+        minio=MinioConfig(
+            access_key=minio.str("MINIO_ROOT_USER"),
+            secret_key=minio.str("MINIO_ROOT_PASSWORD"),
+            endpoint_url=_clean_env_value(minio.str("MINIO_ENDPOINT_URL", default="http://minio:9000")),
+        )
     )
 
 

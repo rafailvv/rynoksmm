@@ -53,12 +53,12 @@ function showAccessError(message) {
 
 // Функция для получения URL изображения из S3
 function getImageUrl(filename) {
-  return `https://s3.prof-tg.ru/${prof_bucket}/images/${filename}?nocache=${new Date().getTime()}`;
+  return `https://s3.specfind.ru/${prof_bucket}/images/${filename}?nocache=${new Date().getTime()}`;
 }
 
 // Функция для получения URL системных изображений из bucket "system"
 function getSystemImageUrl(filename) {
-  return `https://s3.prof-tg.ru/system/images/${filename}?nocache=${new Date().getTime()}`;
+  return `https://s3.specfind.ru/system/images/${filename}?nocache=${new Date().getTime()}`;
 }
 // Функция для заполнения полей модального окна текущими данными
 function fillModalFields() {

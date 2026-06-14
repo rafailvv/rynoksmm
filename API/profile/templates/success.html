@@ -71,7 +71,7 @@
 <body>
 
 <div class="container">
-    <img src="https://s3.prof-tg.ru/system/images/done.png" class="checkmark">
+    <img src="https://s3.specfind.ru/system/images/done.png" class="checkmark">
     <div class="success-message">Оплата прошла успешно!</div>
     <button class="checkout-button" onclick="redirectToTraining()">Активировать</button>
 </div>
@@ -95,12 +95,12 @@
         if (payment_id) {
             const host = window.location.hostname;
             const botByHost = {
-                "smm.prof-tg.ru": "rynoksmm_bot",
-                "massage.prof-tg.ru": "rynokmassage_bot",
-                "photo.prof-tg.ru": "rynokphoto_bot",
+                "smm.specfind.ru": "rynoksmm_bot",
+                "massage.specfind.ru": "rynokmassage_bot",
+                "event.specfind.ru": "rynokevent_bot",
                 "rynoksmm.ru": "rynoksmm_bot",
                 "rynokmassage.ru": "rynokmassage_bot",
-                "rynokphoto.ru": "rynokphoto_bot"
+                "rynokevent.ru": "rynokevent_bot"
             };
             const bot = botByHost[host] || "rynoksmm_bot";
             window.Telegram.WebApp.openTelegramLink(`https://t.me/${bot}?start=pay_${payment_id}`);
