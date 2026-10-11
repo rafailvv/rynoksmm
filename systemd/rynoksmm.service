@@ -1,0 +1,9 @@
+[Service]
+User=root
+WorkingDirectory=/home/rynoksmm
+
+ExecStart=/home/rynoksmm/venv/bin/python3 main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
