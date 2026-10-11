@@ -1,0 +1,86 @@
+networks:
+  mynetwork:
+    name: specfind-network
+
+services:
+  bot_massage:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - massage.env
+    depends_on:
+      redis_massage:
+        condition: service_started
+      db_massage:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  web_massage:
+    container_name: web_massage
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    command: sh -c "pytest tests/test_backend.py && uvicorn Backend:app --host 0.0.0.0 --port 8001 --reload --proxy-headers"
+    ports:
+      - "8001:8001"
+    env_file:
+      - massage.env
+    depends_on:
+      redis_massage:
+        condition: service_started
+      db_massage:
+        condition: service_healthy
+    volumes:
+      - pg_data_massage:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+
+  redis_massage:
+    image: "redis:latest"
+    ports:
+      - "6481:6379"
+    networks:
+      - mynetwork
+
+  db_massage:
+    image: "postgres:17"
+    environment:
+      POSTGRES_USER: rynokmassage
+      POSTGRES_PASSWORD: 23jQ29155skR9659
+      POSTGRES_DB: rynokmassage
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_data_massage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynokmassage -d rynokmassage"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - mynetwork
+  grafana_massage:
+    image: grafana/grafana:latest
+    container_name: grafana_massage
+    environment:
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
+    ports:
+      - "3001:3001"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - mynetwork
+
+
+volumes:
+  pg_data_massage:
+  grafana_data:
+
+
+
+  

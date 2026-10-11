@@ -1,0 +1,82 @@
+networks:
+  mynetwork:
+    name: specfind-network
+
+services:
+  bot_smm:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - smm.env
+    depends_on:
+      redis_smm:
+        condition: service_started
+      db_smm:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  web_smm:
+    container_name: web_smm
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    command: sh -c "pytest tests/test_backend.py && uvicorn Backend:app --host 0.0.0.0 --port 8000 --reload --proxy-headers"
+    ports:
+      - "8000:8000"
+    env_file:
+      - smm.env
+    depends_on:
+      redis_smm:
+        condition: service_started
+      db_smm:
+        condition: service_healthy
+    volumes:
+      - pg_data_smm:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  redis_smm:
+    image: "redis:latest"
+    ports:
+      - "6480:6379"
+    networks:
+      - mynetwork
+
+  db_smm:
+    image: "postgres:17"
+    environment:
+      POSTGRES_USER: rynoksmm
+      POSTGRES_PASSWORD: 23jQ29155skR9659
+      POSTGRES_DB: rynoksmm
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data_smm:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynoksmm -d rynoksmm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - mynetwork
+    
+  grafana_smm:
+    image: grafana/grafana:latest
+    container_name: grafana_smm
+    environment:
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - mynetwork
+  
+
+volumes:
+  pg_data_smm:
+  grafana_data:

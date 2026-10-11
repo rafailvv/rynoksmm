@@ -1,0 +1,81 @@
+networks:
+  mynetwork:
+    name: specfind-network
+
+services:
+  bot_event:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - event.env
+    depends_on:
+      redis_event:
+        condition: service_started
+      db_event:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  web_event:
+    container_name: web_event
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    command: sh -c "pytest tests/test_backend.py && uvicorn Backend:app --host 0.0.0.0 --port 8002 --reload --proxy-headers"
+    ports:
+      - "8002:8002"
+    env_file:
+      - event.env
+    depends_on:
+      redis_event:
+        condition: service_started
+      db_event:
+        condition: service_healthy
+    volumes:
+      - pg_data_event:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  redis_event:
+    image: "redis:latest"
+    ports:
+      - "6482:6379"
+    networks:
+      - mynetwork
+
+  db_event:
+    image: "postgres:17"
+    environment:
+      POSTGRES_USER: rynokevent
+      POSTGRES_PASSWORD: 23jQ29155skR9659
+      POSTGRES_DB: rynokevent
+    ports:
+      - "5435:5432"
+    volumes:
+      - pg_data_event:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rynokevent -d rynokevent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - mynetwork
+
+  grafana_event:
+    image: grafana/grafana:latest
+    container_name: grafana_event
+    environment:
+      - GF_INSTALL_PLUGINS=marcusolsson-json-datasource
+    ports:
+      - "3002:3002"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - mynetwork
+
+volumes:
+  pg_data_event:
+  grafana_data:
