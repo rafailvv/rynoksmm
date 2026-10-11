@@ -50,6 +50,46 @@ class SmmQueries(BaseDatabase):
             dict_of_smm = sorted(dict_of_smm.items(), key=lambda x: -x[1][-1])
             return dict_of_smm
 
+    async def get_smm_for_ai_search(self, cities: list[str] | None = None, price_max: int | None = None):
+        async with self.db() as session:
+            stmt = (
+                select(
+                    Smm.user_id,
+                    Smm.full_name,
+                    Smm.age,
+                    Smm.town,
+                    Smm.photo,
+                    Smm.cost,
+                    Smm.description,
+                    Smm.description_embedding,
+                )
+                .where(Smm.date_sub > datetime.utcnow())
+            )
+
+            normalized_cities = [
+                city.strip().lower()
+                for city in (cities or [])
+                if isinstance(city, str) and city.strip()
+            ]
+            if normalized_cities:
+                stmt = stmt.where(func.lower(Smm.town).in_(normalized_cities))
+
+            if price_max is not None:
+                stmt = stmt.where(Smm.cost <= price_max)
+
+            result = await session.execute(stmt)
+            candidates = []
+            for row in result.fetchall():
+                user_id, name, age, town, photo, cost, description, embedding = row
+                candidates.append(
+                    (
+                        user_id,
+                        (name, age, town, photo, cost, description, user_id),
+                        embedding,
+                    )
+                )
+            return candidates
+
     async def get_profile_by_id(self, id):
         async with self.db() as session:
             result = await session.execute(

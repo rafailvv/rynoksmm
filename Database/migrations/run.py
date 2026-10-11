@@ -5,6 +5,7 @@ import socket
 from Bot.config import config
 from Database.session import BaseDatabase
 from Database.migrations.m20260419_add_smm_description_embedding import upgrade as upgrade_20260419
+from Database.migrations.m20260713_add_map_points import upgrade as upgrade_20260713
 
 
 async def run_migrations() -> None:
@@ -14,6 +15,7 @@ async def run_migrations() -> None:
             database = BaseDatabase(config)
             async with database.session_manager.engine.begin() as conn:
                 await upgrade_20260419(conn)
+                await upgrade_20260713(conn)
             return
         except socket.gaierror as exc:
             last_error = exc

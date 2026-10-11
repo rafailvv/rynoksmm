@@ -135,6 +135,34 @@ async def test_talook_done_calls_search_by_town(callback_module, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_search_mode_filters_calls_search_by_field(callback_module, monkeypatch):
+    message = FakeMessage()
+    callback = FakeCallback("search_mode|filters", message)
+    state = FakeState({"ta": ["old"]})
+    monkeypatch.setattr(callback_module, "search_by_field", AsyncMock())
+
+    await callback_module.search_mode(callback, state)
+
+    callback_module.search_by_field.assert_awaited_once_with(message, state, smm=False, edit=True)
+    assert state.data["ta"] == []
+    callback.answer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_search_mode_ai_sets_ai_search_state(callback_module):
+    message = FakeMessage()
+    callback = FakeCallback("search_mode|ai", message)
+    state = FakeState({"ta": ["old"]})
+
+    await callback_module.search_mode(callback, state)
+
+    assert state.state == callback_module.st.ai_search
+    assert state.data == {}
+    message.edit_text.assert_awaited_once()
+    callback.answer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_choose_smm_buy_adds_contact_and_updates_list(callback_module, monkeypatch):
     message = FakeMessage(chat_id=101)
     callback = FakeCallback("choose_smm|buy|202", message)

@@ -50,6 +50,7 @@ class Mistral:
 class OpenRouter:
     api_key: str
     model: str
+    embedding_model: str
 
 @dataclass
 class ProfConfig:
@@ -63,7 +64,7 @@ class MinioConfig:
     access_key: str
     secret_key: str
     endpoint_url: str
-    
+
 
 @dataclass
 class Config:
@@ -80,7 +81,7 @@ class Config:
 
 def load_config(path: str = None):
     import os
-    
+
     # Автоматическое определение .env файла
     if path is None:
         # Проверяем переменные окружения Docker
@@ -94,18 +95,15 @@ def load_config(path: str = None):
                 path = "event.env"
             else:
                 path = ".env"  # fallback
-    
-    
+
+
     env = Env()
     env.read_env(path)
     minio = Env()
     minio.read_env("minio.env")
-    openrouter_api = env.str("OPEN_ROUTER_API", default=None)
-    if openrouter_api is None:
-        openrouter_api = env.str("OPENROUTER_API_KEY")
-    openrouter_model = env.str("OPEN_ROUTER_MODEL", default=None)
-    if openrouter_model is None:
-        openrouter_model = env.str("OPENROUTER_MODEL")
+    openrouter_api = env.str("OPENROUTER_API", default=None)
+    openrouter_model = env.str("OPENROUTER_MODEL", default=None)
+    openrouter_embedding_model = env.str("OPENROUTER_EMBEDDING_MODEL", default=None)
 
     return Config(
         tg_bot=TgBotConfig(
@@ -137,7 +135,7 @@ def load_config(path: str = None):
             api_key=env.str("MISTRAL_API_KEY", default=""),
             model=env.str("MISTRAL_MODEL", default=""),
         ),
-        openrouter=OpenRouter(api_key=openrouter_api, model=openrouter_model),
+        openrouter=OpenRouter(api_key=openrouter_api, model=openrouter_model, embedding_model=openrouter_embedding_model),
         prof=ProfConfig(i_am=env.str("I_AM"), i_looking=env.str("I_FIND"), prof=env.str("BOT_PROF")),
         minio=MinioConfig(
             access_key=minio.str("MINIO_ROOT_USER"),

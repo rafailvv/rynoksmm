@@ -2,7 +2,9 @@ from aiogram import Router
 from aiogram.types import CallbackQuery
 
 import asyncio
+import math
 import os
+import re
 import uuid
 
 from Bot.config import config
@@ -35,6 +37,7 @@ from dotenv import dotenv_values
 import pandas as pd
 
 from Database.manager import db
+from Database.embeddings import make_embedding_safe
 
 from Bot.misc.states import SmmStatesGroup as st
 from Bot.misc.methods import *
@@ -62,6 +65,8 @@ from aiogram.exceptions import TelegramForbiddenError
 # OpenRouter client is provided from Bot.misc.bot
 
 from Bot.misc import constants
+
+import logging
 
 message_router = Router()
 
@@ -93,6 +98,171 @@ def load_prof_details():
         return {}
 
 prof_details = load_prof_details()
+
+AI_SEARCH_INSTRUCTION = """
+Из данного текста составь JSON-объект с данными полями: "cities", "price_min", "price_max", "query_text".
+Где cities - список городов на русском языке, в которых находится специалист, price_max - число-цена специалиста максимальная,
+price_min - число-цена специалиста минимальная (валюту переводи в рубли в соответствии с курсом),
+query_text - данный текст переделанный так, чтобы там не было городов и цен специалиста.
+Все эмодзи должны быть оставлены, если они не относятся к городу или цене.
+Все поля должны быть заполнены на том языке, на котором было написано в описании, если не было выявлено какое-то поле - ставь null.
+Возвращай строго JSON без лишнего форматирования.
+"""
+
+
+async def show_search_mode_choice(message: Message, edit: bool = False):
+    btns = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="С помощью фильтров", callback_data="search_mode|filters")],
+        [InlineKeyboardButton(text="С помощью ИИ", callback_data="search_mode|ai")],
+    ])
+    text = "Как вы хотите искать специалиста?"
+    if edit:
+        await message.edit_text(text=text, reply_markup=btns)
+    else:
+        await message.answer(text=text, reply_markup=btns)
+
+
+def _extract_json_text(response_text: str | None) -> str:
+    text = (response_text or "").strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", text, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        return fenced.group(1).strip()
+    json_object = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if json_object:
+        return json_object.group(0).strip()
+    return text
+
+
+def _parse_int_or_none(value):
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        digits = re.sub(r"[^\d]", "", value)
+        return int(digits) if digits else None
+    return None
+
+
+def parse_ai_search_json(response_text: str | None) -> dict | None:
+    try:
+        data = json.loads(_extract_json_text(response_text))
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    cities = data.get("cities")
+    if isinstance(cities, str):
+        cities = [cities]
+    elif not isinstance(cities, list):
+        cities = None
+    if cities is not None:
+        cities = [city.strip() for city in cities if isinstance(city, str) and city.strip()]
+        cities = cities or None
+
+    query_text = data.get("query_text")
+    if not isinstance(query_text, str) or not query_text.strip():
+        query_text = None
+
+    return {
+        "cities": cities,
+        "price_min": _parse_int_or_none(data.get("price_min")),
+        "price_max": _parse_int_or_none(data.get("price_max")),
+        "query_text": query_text,
+    }
+
+
+async def parse_ai_search_query(query: str) -> dict | None:
+    chat_response = await openrouter_client.chat.completions.create(
+        model=config.openrouter.model,
+        temperature=0.2,
+        messages=[
+            {
+                "role": "user",
+                "content": f"{query}\n{AI_SEARCH_INSTRUCTION}",
+            },
+        ],
+    )
+    response_text = chat_response.choices[0].message.content
+    return parse_ai_search_json(response_text)
+
+
+def cosine_similarity(left: list[float], right: list[float]) -> float | None:
+    try:
+        left = [float(value) for value in left]
+        right = [float(value) for value in right]
+    except (TypeError, ValueError):
+        return None
+
+    if not left or not right or len(left) != len(right):
+        return None
+
+    dot = sum(a * b for a, b in zip(left, right))
+    left_norm = math.sqrt(sum(a * a for a in left))
+    right_norm = math.sqrt(sum(b * b for b in right))
+    if left_norm == 0 or right_norm == 0:
+        return None
+
+    return dot / (left_norm * right_norm)
+
+
+def rank_ai_search_results(candidates, query_embedding: list[float] | None, limit: int = 5):
+    if not query_embedding:
+        return [(user_id, profile) for user_id, profile, _embedding in candidates[:limit]]
+
+    scored = []
+    without_embedding = []
+    for user_id, profile, embedding in candidates:
+        score = cosine_similarity(query_embedding, embedding) if isinstance(embedding, list) else None
+        if score is None:
+            without_embedding.append((user_id, profile))
+        else:
+            scored.append((score, user_id, profile))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    ranked = [(user_id, profile) for _score, user_id, profile in scored if _score >= 0.600]
+    logging.info(f"Scored: {scored}")
+    return ranked[:limit]
+
+
+def get_missing_profile_fields(profile, tas, has_s3_photo: bool) -> list[str]:
+    if profile is None:
+        return ["профиль"]
+
+    _smm_id, full_name, phone, _user_id, age, town, cost, _photo, _username, description, _date_sub = profile
+    fields = [
+        ("имя и фамилия", full_name),
+        ("номер телефона", phone),
+        ("возраст", age),
+        ("город", town),
+        ("цена услуг", cost),
+        ("описание", description),
+    ]
+
+    missing = [
+        label
+        for label, value in fields
+        if value is None or (isinstance(value, str) and not value.strip())
+    ]
+    if len(tas) == 0:
+        missing.append("сферы деятельности")
+    if not has_s3_photo:
+        missing.append("фотография")
+
+    return missing
+
+
+def build_missing_profile_message(missing_fields: list[str]) -> str:
+    if not missing_fields:
+        return "Пожалуйста, заполните все поля профиля, нажав на кнопку 'Профиль', и повторите попытку"
+
+    fields_text = "\n".join(f"• {field}" for field in missing_fields)
+    return (
+        "Пожалуйста, заполните профиль, нажав на кнопку 'Профиль', и повторите попытку.\n\n"
+        f"Не заполнено:\n{fields_text}"
+    )
 
 
 async def got_payment(message: Message, payment_response: PaymentResponse, payment_type, payment_id, state: FSMContext):
@@ -222,7 +392,7 @@ async def deep_link_start(message: Message, state: FSMContext):
     elif data == f"i_looking_{prof_type}":
         await state.clear()
         await state.update_data(ta=[])
-        await search_by_field(message, state)
+        await show_search_mode_choice(message)
     elif data.startswith("pay"):
         _, payment_id = data.split("_")
         Configuration.account_id = config.yookassa.shop_id
@@ -300,6 +470,43 @@ async def ai_smm(message: Message, state: FSMContext):
         await message.answer(f"У вас осталось {state_data['user_requests_limit'] - (await state.get_data())['user_requests_count']} запросов")
     except Exception as e:
         await message_wait.answer("Произошла ошибка, попробуйте еще раз")
+
+
+@message_router.message(st.ai_search)
+async def ai_specialist_search(message: Message, state: FSMContext):
+    query = (message.text or "").strip()
+    if not query:
+        await message.answer("Опишите, какого специалиста нужно подобрать")
+        return
+
+    message_wait = await message.answer("Подождите, подбираю специалистов...")
+    try:
+        parsed_query = await parse_ai_search_query(query)
+        if parsed_query is None:
+            await message_wait.edit_text("Не удалось разобрать запрос. Попробуйте описать город, бюджет и задачу чуть подробнее.")
+            return
+
+        query_text = parsed_query["query_text"] or query
+        candidates = await db.smm.get_smm_for_ai_search(
+            cities=parsed_query["cities"],
+            price_max=parsed_query["price_max"],
+        )
+        query_embedding = await make_embedding_safe(query_text)
+        results = rank_ai_search_results(candidates, query_embedding, limit=5)
+
+        state_data = await state.get_data()
+        await state.clear()
+        await state.update_data(state_data)
+        await state.update_data(
+            ai_search_query=query,
+            ai_search_params=parsed_query,
+            ai_search=True,
+        )
+
+        await message_wait.delete()
+        await list_of_smm(message, results, 0, state)
+    except Exception:
+        await message_wait.edit_text("Произошла ошибка при ИИ-поиске, попробуйте еще раз")
 
 
 @message_router.message(F.text == "Избранные контакты 🤝")
@@ -537,20 +744,21 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
         if message.chat.id in config.tg_bot.admins:
             btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer("Пожалуйста, заполните профиль, нажав на кнопку 'Профиль', и повторите попытку",
+        await message.answer(build_missing_profile_message(get_missing_profile_fields(None, [], False)),
                              reply_markup=btn)
         return
 
     smm_id, full_name, phone, user_id, age, town, cost, photo, username, description, date_sub = profile
     has_s3_photo = await is_s3_image_exists(user_id)
-    if None in [full_name, phone, age, town, cost, description] or len(tas) == 0 or not has_s3_photo:
+    missing_fields = get_missing_profile_fields(profile, tas, has_s3_photo)
+    if missing_fields:
         btn = [[KeyboardButton(text="Меню ☰"), KeyboardButton(text="Тех. поддержка 🛠")],
                [KeyboardButton(text="Избранные контакты 🤝")],
                [KeyboardButton(text="Оформить подписку 🎟")]]
         if message.chat.id in config.tg_bot.admins:
             btn.append([KeyboardButton(text="Просмотреть заявки 📩")])
         btn = ReplyKeyboardMarkup(keyboard=btn, resize_keyboard=True)
-        await message.answer("Пожалуйста, заполните все поля профиля, нажав на кнопку 'Профиль', и повторите попытку",
+        await message.answer(build_missing_profile_message(missing_fields),
                              reply_markup=btn)
         return
     if promo == "-":
@@ -647,6 +855,12 @@ async def promo(message: Message, state: FSMContext, fl=True, promo=None):
 
 
 @message_router.message(Command("i_looking_smm"))
+async def looking_smm_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await state.update_data(ta=[])
+    await show_search_mode_choice(message)
+
+
 async def search_by_field(message: Message, state: FSMContext, smm=False, edit=False, clear=True):
     state_data = await state.get_data()
     f = []

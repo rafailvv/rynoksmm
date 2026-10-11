@@ -126,7 +126,7 @@ async def menu(callback: CallbackQuery, state: FSMContext):
     elif data[1] == "looking_smm":
         await state.clear()
         await state.update_data(ta=[])
-        await search_by_field(callback.message, state, smm=False)
+        await show_search_mode_choice(callback.message)
     elif data[1] == "ai":
         if not prof_details.get(config.prof.prof, {}).get("ai_name"):
             await message.answer("Нейробот недоступен для этой профессии")
@@ -147,6 +147,25 @@ async def menu(callback: CallbackQuery, state: FSMContext):
         btns = ReplyKeyboardMarkup(keyboard=btns, resize_keyboard=True)
         ai_name = prof_data.get("ai_name", "НейроБот").replace(" 🤖", "")
         await message.answer(f"Добро пожаловать в {ai_name}, он поможет вам в написании контента и упаковке профиля.\nУ вас осталось {state_data['user_requests_limit'] - state_data['user_requests_count']} запросов", reply_markup=btns)
+
+    await callback.answer()
+
+
+@callback_router.callback_query(lambda q: "search_mode" == q.data.split('|')[0])
+async def search_mode(callback: CallbackQuery, state: FSMContext):
+    message = callback.message
+    data = callback.data.split("|")
+
+    if data[1] == "filters":
+        await state.clear()
+        await state.update_data(ta=[])
+        await search_by_field(message, state, smm=False, edit=True)
+    elif data[1] == "ai":
+        await state.clear()
+        await state.set_state(st.ai_search)
+        await message.edit_text(
+            "Опишите, какого специалиста нужно подобрать: город, бюджет и задачу"
+        )
 
     await callback.answer()
 

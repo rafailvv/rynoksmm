@@ -14,3 +14,4 @@ class SmmStatesGroup(StatesGroup):
     support_reply = State()
     clear = State()
     thread_state = State()
+    ai_search = State()

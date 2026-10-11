@@ -290,7 +290,11 @@ async def list_of_smm(message: Message, dict_of_smm, i, state: FSMContext, fl=Fa
     n = len(dict_of_smm)
     if n == 0:
         id = str(uuid.uuid4())
-        state_data[id] = [state_data["ta"], state_data["town_search"], state_data["cost_search"]]
+        state_data[id] = [
+            state_data.get("ta", []),
+            state_data.get("town_search"),
+            state_data.get("cost_search"),
+        ]
         await state.update_data(state_data)
         await message.answer(text="🥲 К сожалению, не найдено ни одного специалиста")
     else:

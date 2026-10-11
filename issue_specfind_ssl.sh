@@ -4,6 +4,7 @@ set -eu
 
 COMPOSE_FILE="docker-compose.nginx.yml"
 WEBROOT_HOST="/var/www/letsencrypt"
+BOOTSTRAP_DIR="/etc/nginx/bootstrap"
 RSA_KEY_SIZE="4096"
 
 DOMAINS="
@@ -21,17 +22,11 @@ grafana.event.specfind.ru
 usage() {
     cat <<EOF
 Usage:
-  $0 v.k0korev@yandex.com
+  $0 your@email.com
 
 Environment variables:
   LETSENCRYPT_EMAIL  Email for Let's Encrypt account
   STAGING=1          Use Let's Encrypt staging endpoint
-
-This script expects:
-  - docker / docker-compose to be available
-  - nginx from ${COMPOSE_FILE} to already be running
-  - DNS for all domains to point to this server
-  - port 80 to be reachable from the internet
 EOF
 }
 
@@ -41,9 +36,9 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 fi
 
 EMAIL="${1:-${LETSENCRYPT_EMAIL:-}}"
+
 if [ -z "${EMAIL}" ]; then
-    echo "Error: email is required."
-    usage
+    echo "Email is required"
     exit 1
 fi
 
@@ -52,7 +47,7 @@ if docker compose version >/dev/null 2>&1; then
 elif command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_BIN="docker-compose"
 else
-    echo "Error: neither 'docker compose' nor 'docker-compose' was found."
+    echo "docker compose not found"
     exit 1
 fi
 
@@ -66,26 +61,53 @@ run_compose() {
 
 mkdir -p "${WEBROOT_HOST}/.well-known/acme-challenge"
 
-if ! run_compose ps --services --status running | grep -qx "nginx"; then
-    echo "Error: nginx service from ${COMPOSE_FILE} is not running."
-    echo "Start it first, for example:"
-    echo "  docker-compose -f ${COMPOSE_FILE} up -d nginx"
+#
+# bootstrap certificate
+#
+mkdir -p "${BOOTSTRAP_DIR}"
+
+if [ ! -f "${BOOTSTRAP_DIR}/fullchain.pem" ] || [ ! -f "${BOOTSTRAP_DIR}/privkey.pem" ]; then
+    echo "Creating bootstrap certificate"
+
+    openssl req \
+        -x509 \
+        -nodes \
+        -newkey rsa:2048 \
+        -days 1 \
+        -keyout "${BOOTSTRAP_DIR}/privkey.pem" \
+        -out "${BOOTSTRAP_DIR}/fullchain.pem" \
+        -subj "/CN=bootstrap"
+fi
+
+echo "Starting nginx"
+run_compose up -d nginx
+
+sleep 5
+
+echo "Checking nginx"
+
+if ! run_compose exec nginx nginx -t; then
+    echo "nginx config invalid"
     exit 1
 fi
 
 STAGING_FLAG=""
+
 if [ "${STAGING:-0}" = "1" ]; then
     STAGING_FLAG="--staging"
 fi
 
-echo "Issuing certificates via webroot ${WEBROOT_HOST}"
+echo "Requesting certificates"
+
 for domain in ${DOMAINS}; do
     echo ">>> ${domain}"
+
     run_compose run --rm --entrypoint certbot certbot \
         certonly \
         --webroot \
         -w /var/www/letsencrypt \
         -d "${domain}" \
+        --cert-name "${domain}" \
         --non-interactive \
         --agree-tos \
         --email "${EMAIL}" \
@@ -100,4 +122,4 @@ run_compose exec nginx nginx -t
 echo "Reloading nginx"
 run_compose exec nginx nginx -s reload
 
-echo "Done."
+echo "Done"

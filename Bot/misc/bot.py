@@ -12,6 +12,7 @@ client = Mistral(api_key=f"{config.mistral.api_key}") if config.mistral.api_key 
 openrouter_client = AsyncOpenAI(
     api_key=config.openrouter.api_key,
     base_url="https://openrouter.ai/api/v1",
+    max_retries=10,
 )
 
 # client = OpenAI(api_key=f"{config.gpt.api_key}")

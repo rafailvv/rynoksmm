@@ -42,8 +42,10 @@ class FakeSession:
         self.add_raises = add_raises
         self.add_calls = 0
         self.commit_calls = 0
+        self.execute_calls = []
 
     async def execute(self, *args, **kwargs):
+        self.execute_calls.append((args, kwargs))
         if self.execute_results:
             return self.execute_results.pop(0)
         return FakeResult()
@@ -233,3 +235,38 @@ async def test_smm_updt_user_updates_embedding(monkeypatch):
     await q.updt_user(1, "Name", "123", 30, "Town", 50000, "profile text")
 
     assert session.commit_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_smm_get_smm_for_ai_search_filters_city_and_price():
+    session = FakeSession(
+        execute_results=[
+            FakeResult(
+                fetchall_data=[
+                    (1, "Name", 30, "Москва", "photo", 70000, "desc", [1.0, 0.0])
+                ]
+            )
+        ]
+    )
+    q = make_query(SmmQueries, session)
+
+    result = await q.get_smm_for_ai_search(cities=["Москва"], price_max=80000)
+
+    assert result == [(1, ("Name", 30, "Москва", "photo", 70000, "desc", 1), [1.0, 0.0])]
+    stmt = session.execute_calls[0][0][0]
+    compiled = str(stmt)
+    assert "lower(smm.town) IN" in compiled
+    assert "smm.cost <= " in compiled
+
+
+@pytest.mark.asyncio
+async def test_smm_get_smm_for_ai_search_without_price_filter():
+    session = FakeSession(execute_results=[FakeResult(fetchall_data=[])])
+    q = make_query(SmmQueries, session)
+
+    await q.get_smm_for_ai_search(cities=None, price_max=None)
+
+    stmt = session.execute_calls[0][0][0]
+    compiled = str(stmt)
+    assert "lower(smm.town) IN" not in compiled
+    assert "smm.cost <= " not in compiled

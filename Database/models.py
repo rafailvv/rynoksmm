@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, BigInteger, Column, DateTime, ForeignKey, Identity, Integer, Text, text
+from sqlalchemy import JSON, BigInteger, Column, DateTime, Float, ForeignKey, Identity, Integer, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 
 from sqlalchemy.orm import declarative_base, relationship
@@ -93,6 +93,19 @@ class Smm(Base):
     user = relationship('Users', back_populates='smm')
     cases = relationship('Cases', back_populates='smm', passive_deletes=True)
     contacts = relationship('Contacts', back_populates='smm', passive_deletes=True)
+    map_points = relationship('MapPoint', back_populates='smm', passive_deletes=True)
+
+
+class MapPoint(Base):
+    __tablename__ = 'map_points'
+
+    id = Column(Integer, Identity(start=1, increment=1, minvalue=1, maxvalue=2147483647, cycle=False, cache=1),
+                primary_key=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    smm_id = Column(ForeignKey('smm.id', ondelete='CASCADE'), nullable=False)
+
+    smm = relationship('Smm', back_populates='map_points')
 
 
 class SubscribeNotifications(Base):
